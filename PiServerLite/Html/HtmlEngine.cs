@@ -142,7 +142,10 @@ namespace PiServerLite.Html
 
                 object item_value;
                 if (valueCollection != null && GetVariableValue(valueCollection, condition, out item_value))
-                    conditionResult = GetTruthyValue(item_value);
+                    conditionResult = TruthyEngine.GetValue(item_value);
+
+                if (condition.StartsWith("!"))
+                    conditionResult = !conditionResult;
             }
 
             var conditionResultText = conditionResult ? trueBlockText : falseBlockText;
@@ -289,30 +292,6 @@ namespace PiServerLite.Html
             }
 
             return true;
-        }
-
-        private bool GetTruthyValue(object value)
-        {
-            if (value == null) return false;
-
-            var type = value.GetType();
-            if (type == typeof(bool))
-                return (bool)value;
-
-            if (type == typeof(int))
-                return (int)value > 0;
-
-            if (type == typeof(string)) {
-                var stringValue = (string)value;
-                if (string.Equals(stringValue, "true", StringComparison.OrdinalIgnoreCase)) return true;
-                if (string.Equals(stringValue, "false", StringComparison.OrdinalIgnoreCase)) return false;
-                if (string.Equals(stringValue, "yes", StringComparison.OrdinalIgnoreCase)) return true;
-                if (string.Equals(stringValue, "no", StringComparison.OrdinalIgnoreCase)) return false;
-
-                return !string.IsNullOrEmpty(stringValue);
-            }
-
-            return value != null;
         }
 
         private static IDictionary<string, object> ToDictionary(object parameters)

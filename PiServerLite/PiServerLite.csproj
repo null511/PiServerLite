@@ -43,6 +43,7 @@
   <ItemGroup>
     <Compile Include="Html\BlockResult.cs" />
     <Compile Include="Html\TagNotFoundBehavior.cs" />
+    <Compile Include="Html\TruthyEngine.cs" />
     <Compile Include="HttpReceiverContext.cs" />
     <Compile Include="Http\ContentDirectory.cs" />
     <Compile Include="Http\HttpHandler.cs" />
