@@ -140,11 +140,14 @@ namespace PiServerLite.Html
             if (conditionStart >= 0) {
                 var condition = tag.Substring(conditionStart+1);
 
+                var invert = condition.StartsWith("!");
+                if (invert) condition = condition.Substring(1);
+
                 object item_value;
                 if (valueCollection != null && GetVariableValue(valueCollection, condition, out item_value))
                     conditionResult = TruthyEngine.GetValue(item_value);
 
-                if (condition.StartsWith("!"))
+                if (invert)
                     conditionResult = !conditionResult;
             }
 
