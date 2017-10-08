@@ -86,10 +86,14 @@ namespace PiServerLite.Http
             if (path.Length == 0 || path == "/")
                 path = Context.DefaultRoute;
 
+            HttpHandlerResult result = null;
             try {
-                GetRouteResult(context, path).Apply(context);
+                result = GetRouteResult(context, path);
+                result.Apply(context);
             }
             finally {
+                result?.Dispose();
+
                 try {
                     context.Response.Close();
                 }

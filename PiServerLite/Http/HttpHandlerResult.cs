@@ -2,31 +2,54 @@
 using System;
 using System.IO;
 using System.Net;
+using System.Text;
 
 namespace PiServerLite.Http
 {
-    public class HttpHandlerResult
+    public class HttpHandlerResult : IDisposable
     {
-        private string content;
+        private Stream streamContent;
         private Action<Stream> contentAction;
         private string redirectUrl;
 
         public int StatusCode {get; set;}
         public string StatusDescription {get; set;}
         public string ContentType {get; set;}
+        public long ContentLength {get; set;}
+        public bool SendChunked {get; set;}
 
         public MimeTypeDictionary MimeTypes {get; set;}
 
 
+        public void Dispose()
+        {
+            streamContent?.Dispose();
+        }
+
         public HttpHandlerResult SetText(string text)
         {
-            content = text;
+            var data = Encoding.UTF8.GetBytes(text);
+            streamContent = new MemoryStream(data);
+            ContentLength = data.LongLength;
             return this;
         }
 
-        public HttpHandlerResult SetContentType(string contentType)
+        public HttpHandlerResult SetContentType(string contentType, bool chunked = false)
         {
             ContentType = contentType;
+            return this;
+        }
+
+        public HttpHandlerResult SetContent(Stream stream)
+        {
+            ContentLength = stream.Length;
+            streamContent = stream;
+            return this;
+        }
+
+        public HttpHandlerResult SetChunked(bool value)
+        {
+            SendChunked = value;
             return this;
         }
 
@@ -36,7 +59,7 @@ namespace PiServerLite.Http
             return this;
         }
 
-        public void Apply(HttpListenerContext context)
+        internal void Apply(HttpListenerContext context)
         {
             if (!string.IsNullOrEmpty(redirectUrl)) {
                 context.Response.Redirect(redirectUrl);
@@ -46,14 +69,16 @@ namespace PiServerLite.Http
             context.Response.StatusCode = StatusCode;
             context.Response.StatusDescription = StatusDescription;
             context.Response.ContentType = ContentType;
+            context.Response.SendChunked = SendChunked;
+
+            if (!SendChunked)
+                context.Response.ContentLength64 = ContentLength;
 
             if (contentAction != null) {
                 contentAction.Invoke(context.Response.OutputStream);
             }
-            else if (content != null) {
-                using (var writer = new StreamWriter(context.Response.OutputStream)) {
-                    writer.Write(content);
-                }
+            else if (streamContent != null) {
+                streamContent.CopyTo(context.Response.OutputStream);
             }
         }
 
@@ -70,8 +95,7 @@ namespace PiServerLite.Http
             return new HttpHandlerResult() {
                 StatusCode = (int)HttpStatusCode.NotFound,
                 StatusDescription = "Not Found!",
-                content = "404 - Not Found",
-            };
+            }.SetText("404 - Not Found");
         }
 
         public static HttpHandlerResult BadRequest()
@@ -110,8 +134,7 @@ namespace PiServerLite.Http
             return new HttpHandlerResult() {
                 StatusCode = (int)HttpStatusCode.NotFound,
                 StatusDescription = "Not Found!",
-                content = error.ToString(),
-            };
+            }.SetText(error.ToString());
         }
 
         public static HttpHandlerResult View(HttpReceiverContext context, string name, object param = null)
@@ -129,8 +152,7 @@ namespace PiServerLite.Http
             return new HttpHandlerResult {
                 StatusCode = (int)HttpStatusCode.OK,
                 StatusDescription = "OK.",
-                content = content,
-            };
+            }.SetText(content);
         }
     }
 }
