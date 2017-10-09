@@ -42,19 +42,24 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Html\BlockResult.cs" />
+    <Compile Include="Html\NetPath.cs" />
     <Compile Include="Html\TagNotFoundBehavior.cs" />
     <Compile Include="Html\TruthyEngine.cs" />
+    <Compile Include="Html\UrlUtility.cs" />
     <Compile Include="HttpReceiverContext.cs" />
     <Compile Include="Http\ContentDirectory.cs" />
+    <Compile Include="Http\HttpHandlerAsync.cs" />
     <Compile Include="Http\HttpHandler.cs" />
     <Compile Include="Http\HttpHandlerAttribute.cs" />
     <Compile Include="Http\HttpHandlerResult.cs" />
     <Compile Include="Http\HttpReceiver.cs" />
     <Compile Include="Http\HttpRouteCollection.cs" />
+    <Compile Include="Http\IHttpHandler.cs" />
     <Compile Include="Http\RequestAs.cs" />
     <Compile Include="Http\MimeTypeDictionary.cs" />
     <Compile Include="Http\ViewCollection.cs" />
     <Compile Include="Html\HtmlEngine.cs" />
+    <Compile Include="ObjectExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StringExtensions.cs" />
   </ItemGroup>

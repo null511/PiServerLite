@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 
 namespace PiServerLite.Http
 {
@@ -74,7 +75,7 @@ namespace PiServerLite.Http
             }
         }
 
-        private void RouteRequest(HttpListenerContext context)
+        private async Task RouteRequest(HttpListenerContext context)
         {
             var path = context.Request.Url.AbsolutePath.TrimEnd('/');
 
@@ -88,8 +89,8 @@ namespace PiServerLite.Http
 
             HttpHandlerResult result = null;
             try {
-                result = GetRouteResult(context, path);
-                result.Apply(context);
+                result = await GetRouteResult(context, path);
+                await result.ApplyAsync(context);
             }
             finally {
                 result?.Dispose();
@@ -101,7 +102,7 @@ namespace PiServerLite.Http
             }
         }
 
-        private HttpHandlerResult GetRouteResult(HttpListenerContext httpContext, string path)
+        private async Task<HttpHandlerResult> GetRouteResult(HttpListenerContext httpContext, string path)
         {
             // Content Directories
             var contentRoute = Context.ContentDirectories
@@ -113,13 +114,12 @@ namespace PiServerLite.Http
             }
 
             // Handlers
-            if (Routes.TryFind(path, out RouteEvent routeAction)) {
-                try {
-                    return routeAction.Invoke(httpContext, Context);
-                }
-                catch (Exception error) {
-                    return HttpHandlerResult.Exception(error);
-                }
+            try {
+                var result = await Routes.ExecuteAsync(path, httpContext, Context);
+                if (result != null) return result;
+            }
+            catch (Exception error) {
+                return HttpHandlerResult.Exception(error);
             }
 
             return HttpHandlerResult.NotFound()

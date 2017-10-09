@@ -1,8 +1,6 @@
 ﻿using PiServerLite.Http;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 
 namespace PiServerLite.Html
 {
@@ -27,7 +25,7 @@ namespace PiServerLite.Html
 
         public string Process(string text, object param)
         {
-            var valueCollection = ToDictionary(param);
+            var valueCollection = ObjectExtensions.ToDictionary(param);
 
             // Process root text block
             var result = ProcessBlock(text, valueCollection);
@@ -116,7 +114,7 @@ namespace PiServerLite.Html
 
         private void ProcessConditionalBlock(string text, string tag, IDictionary<string, object> valueCollection, BlockResult result, ref int read_pos)
         {
-            var blockEndStart = text.IndexOf("{{#endif}}", read_pos);
+            var blockEndStart = text.IndexOf("{{#endif}}", read_pos, StringComparison.OrdinalIgnoreCase);
             if (blockEndStart < 0) return;
 
             var blockText = text.Substring(read_pos, blockEndStart - read_pos);
@@ -124,7 +122,7 @@ namespace PiServerLite.Html
 
             string trueBlockText, falseBlockText;
 
-            var blockElseStart = blockText.IndexOf("{{#else}}");
+            var blockElseStart = blockText.IndexOf("{{#else}}", StringComparison.OrdinalIgnoreCase);
             if (blockElseStart >= 0) {
                 trueBlockText = blockText.Substring(0, blockElseStart);
                 falseBlockText = blockText.Substring(blockElseStart + 9);
@@ -178,7 +176,7 @@ namespace PiServerLite.Html
         private void ProcessScriptBlock(string text, IDictionary<string, object> valueCollection, BlockResult result, ref int readPos)
         {
             var endTag = "{{#endscript}}";
-            var blockEndStart = text.IndexOf(endTag, readPos);
+            var blockEndStart = text.IndexOf(endTag, readPos, StringComparison.OrdinalIgnoreCase);
             if (blockEndStart < 0) return;
 
             var blockText = text.Substring(readPos, blockEndStart - readPos);
@@ -191,7 +189,7 @@ namespace PiServerLite.Html
         private void ProcessStyleBlock(string text, IDictionary<string, object> valueCollection, BlockResult result, ref int readPos)
         {
             var endTag = "{{#endstyle}}";
-            var blockEndStart = text.IndexOf(endTag, readPos);
+            var blockEndStart = text.IndexOf(endTag, readPos, StringComparison.OrdinalIgnoreCase);
             if (blockEndStart < 0) return;
 
             var blockText = text.Substring(readPos, blockEndStart - readPos);
@@ -204,7 +202,7 @@ namespace PiServerLite.Html
         private bool ProcessEachBlock(string text, string tag, IDictionary<string, object> valueCollection, BlockResult result, ref int readPos)
         {
             var endTag = "{{#endeach}}";
-            var blockEndStart = text.IndexOf(endTag, readPos);
+            var blockEndStart = text.IndexOf(endTag, readPos, StringComparison.OrdinalIgnoreCase);
             if (blockEndStart < 0) return false;
 
             var blockText = text.Substring(readPos, blockEndStart - readPos);
@@ -295,19 +293,6 @@ namespace PiServerLite.Html
             }
 
             return true;
-        }
-
-        private static IDictionary<string, object> ToDictionary(object parameters)
-        {
-            if (parameters == null) return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-
-            var dictionary = parameters as IDictionary<string, object>;
-            if (dictionary != null) return dictionary;
-
-            return parameters.GetType()
-                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Select(property => new KeyValuePair<string, object>(property.Name, property.GetValue(parameters)))
-                .ToDictionary(x => x.Key, x => x.Value, StringComparer.OrdinalIgnoreCase);
         }
     }
 }

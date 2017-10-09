@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Net;
+using System.Threading.Tasks;
 using System.Web;
 
 namespace PiServerLite.Http
 {
-    public abstract class HttpHandler : IHttpHandler
+    public abstract class HttpHandlerAsync : IHttpHandler
     {
         public HttpListenerContext HttpContext {get; set;}
         public HttpReceiverContext Context {get; set;}
@@ -12,22 +13,22 @@ namespace PiServerLite.Http
         public RequestAs As => new RequestAs(HttpContext.Request);
 
 
-        public virtual HttpHandlerResult Get()
+        public virtual async Task<HttpHandlerResult> GetAsync()
         {
             return NotFound();
         }
 
-        public virtual HttpHandlerResult Post()
+        public virtual async Task<HttpHandlerResult> PostAsync()
         {
             return NotFound();
         }
 
-        public virtual HttpHandlerResult Head()
+        public virtual async Task<HttpHandlerResult> HeadAsync()
         {
             return NotFound();
         }
 
-        public virtual HttpHandlerResult Options()
+        public virtual async Task<HttpHandlerResult> OptionsAsync()
         {
             return NotFound();
         }

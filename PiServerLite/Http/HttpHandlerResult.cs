@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace PiServerLite.Http
 {
@@ -10,6 +11,7 @@ namespace PiServerLite.Http
     {
         private Stream streamContent;
         private Action<Stream> contentAction;
+        private Func<Stream, Task> contentActionAsync;
         private string redirectUrl;
 
         public int StatusCode {get; set;}
@@ -34,7 +36,7 @@ namespace PiServerLite.Http
             return this;
         }
 
-        public HttpHandlerResult SetContentType(string contentType, bool chunked = false)
+        public HttpHandlerResult SetContentType(string contentType)
         {
             ContentType = contentType;
             return this;
@@ -59,6 +61,12 @@ namespace PiServerLite.Http
             return this;
         }
 
+        public HttpHandlerResult SetContent(Func<Stream, Task> writeActionAsync)
+        {
+            contentActionAsync = writeActionAsync;
+            return this;
+        }
+
         internal void Apply(HttpListenerContext context)
         {
             if (!string.IsNullOrEmpty(redirectUrl)) {
@@ -74,11 +82,42 @@ namespace PiServerLite.Http
             if (!SendChunked)
                 context.Response.ContentLength64 = ContentLength;
 
-            if (contentAction != null) {
+            if (contentActionAsync != null) {
+                contentActionAsync.Invoke(context.Response.OutputStream).GetAwaiter().GetResult();
+            }
+            else if (contentAction != null) {
                 contentAction.Invoke(context.Response.OutputStream);
             }
             else if (streamContent != null) {
+                streamContent.Seek(0, SeekOrigin.Begin);
                 streamContent.CopyTo(context.Response.OutputStream);
+            }
+        }
+
+        internal async Task ApplyAsync(HttpListenerContext context)
+        {
+            if (!string.IsNullOrEmpty(redirectUrl)) {
+                context.Response.Redirect(redirectUrl);
+                return;
+            }
+
+            context.Response.StatusCode = StatusCode;
+            context.Response.StatusDescription = StatusDescription;
+            context.Response.ContentType = ContentType;
+            context.Response.SendChunked = SendChunked;
+
+            if (!SendChunked)
+                context.Response.ContentLength64 = ContentLength;
+
+            if (contentActionAsync != null) {
+                await contentActionAsync.Invoke(context.Response.OutputStream);
+            }
+            else if (contentAction != null) {
+                await Task.Run(() => contentAction.Invoke(context.Response.OutputStream));
+            }
+            else if (streamContent != null) {
+                streamContent.Seek(0, SeekOrigin.Begin);
+                await streamContent.CopyToAsync(context.Response.OutputStream);
             }
         }
 
@@ -122,6 +161,7 @@ namespace PiServerLite.Http
                 StatusCode = (int)HttpStatusCode.OK,
                 StatusDescription = "OK.",
                 ContentType = context.MimeTypes.Get(ext),
+                ContentLength = new FileInfo(filename).Length,
             }.SetContent(responseStream => {
                 using (var stream = System.IO.File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read)) {
                     stream.CopyTo(responseStream);
