@@ -20,6 +20,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Debug\PiServerLite.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -28,6 +29,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Release\PiServerLite.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -42,11 +44,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Html\BlockResult.cs" />
+    <Compile Include="Html\Blocks\EachBlock.cs" />
+    <Compile Include="Html\Blocks\ConditionalBlock.cs" />
     <Compile Include="Html\NetPath.cs" />
     <Compile Include="Html\TagNotFoundBehavior.cs" />
+    <Compile Include="Html\TagNotFoundEventArgs.cs" />
     <Compile Include="Html\TruthyEngine.cs" />
     <Compile Include="Html\UrlUtility.cs" />
-    <Compile Include="HttpReceiverContext.cs" />
+    <Compile Include="Http\HttpReceiverContext.cs" />
     <Compile Include="Http\ContentDirectory.cs" />
     <Compile Include="Http\HttpHandlerAsync.cs" />
     <Compile Include="Http\HttpHandler.cs" />

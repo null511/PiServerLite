@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PiServerLite.Html;
+using System;
 using System.Net;
 using System.Threading.Tasks;
 using System.Web;
@@ -11,27 +12,37 @@ namespace PiServerLite.Http
         public HttpReceiverContext Context {get; set;}
 
         public RequestAs As => new RequestAs(HttpContext.Request);
+        public UrlUtility Urls => new UrlUtility(Context.ListenUri);
 
+
+        public virtual void OnRequestReceived() {}
+
+        //-----------------------------
+        #region Methods
 
         public virtual async Task<HttpHandlerResult> GetAsync()
         {
-            return NotFound();
+            return await Task.Run(() => NotFound());
         }
 
         public virtual async Task<HttpHandlerResult> PostAsync()
         {
-            return NotFound();
+            return await Task.Run(() => NotFound());
         }
 
         public virtual async Task<HttpHandlerResult> HeadAsync()
         {
-            return NotFound();
+            return await Task.Run(() => NotFound());
         }
 
         public virtual async Task<HttpHandlerResult> OptionsAsync()
         {
-            return NotFound();
+            return await Task.Run(() => NotFound());
         }
+
+        #endregion
+        //-----------------------------
+        #region Results
 
         public HttpHandlerResult Ok()
         {
@@ -62,6 +73,9 @@ namespace PiServerLite.Http
         {
             return HttpHandlerResult.View(Context, name, param);
         }
+
+        #endregion
+        //-----------------------------
 
         public string GetQuery(string key, string defaultValue = null)
         {

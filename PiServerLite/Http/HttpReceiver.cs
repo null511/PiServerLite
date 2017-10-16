@@ -2,58 +2,79 @@
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace PiServerLite.Http
 {
+    /// <summary>
+    /// Wraps <see cref="HttpListener"/> and routes incoming
+    /// requests to <see cref="IHttpHandler"/> implementations.
+    /// </summary>
     public class HttpReceiver : IDisposable
     {
+        /// <summary>
+        /// Occurs when an exception is thrown by the underlying
+        /// <see cref="HttpListener"/>, or when an uncaught exception
+        /// is raised by an <see cref="IHttpHandler"/> implementation.
+        /// </summary>
         public event EventHandler HttpError;
 
-        private readonly HttpListener listener;
-
+        public HttpListener Listener {get;}
         public HttpRouteCollection Routes {get;}
         public HttpReceiverContext Context {get;}
 
 
-        public HttpReceiver(string prefix, HttpReceiverContext context)
+        /// <summary>
+        /// Creates an <see cref="HttpReceiver"/> instance with no attached prefixes.
+        /// </summary>
+        /// <param name="context"></param>
+        public HttpReceiver(HttpReceiverContext context)
         {
             this.Context = context;
 
-            listener = new HttpListener();
-            listener.Prefixes.Add(prefix);
-
+            Listener = new HttpListener();
             Routes = new HttpRouteCollection();
+        }
+
+        public HttpReceiver(HttpReceiverContext context, string prefix) : this(context)
+        {
+            Listener.Prefixes.Add(prefix);
         }
 
         public void Dispose()
         {
             Stop();
-            listener?.Close();
+            Listener?.Close();
         }
 
         public void Start()
         {
-            listener.Start();
+            Listener.Start();
             Wait();
         }
 
         public void Stop()
         {
-            listener.Stop();
+            Listener.Stop();
         }
 
         private void Wait()
         {
             var state = new object();
-            listener.BeginGetContext(OnContextReceived, state);
+            Listener.BeginGetContext(OnContextReceived, state);
+        }
+
+        public void AddPrefix(string prefix)
+        {
+            Listener.Prefixes.Add(prefix);
         }
 
         private void OnContextReceived(IAsyncResult result)
         {
             HttpListenerContext context;
             try {
-                context = listener.EndGetContext(result);
+                context = Listener.EndGetContext(result);
             }
             catch (ObjectDisposedException) {
                 // ignore
@@ -64,7 +85,7 @@ namespace PiServerLite.Http
                 return;
             }
             finally {
-                if (listener.IsListening) Wait();
+                if (Listener.IsListening) Wait();
             }
 
             try {
@@ -81,24 +102,36 @@ namespace PiServerLite.Http
 
             Console.WriteLine($"Request received from '{context.Request.RemoteEndPoint}' -> '{path}'.");
 
-            if (path.StartsWith(Context.UrlRoot))
-                path = path.Substring(Context.UrlRoot.Length);
+            var root = Context.ListenUri.AbsolutePath.TrimEnd('/');
 
-            if (path.Length == 0 || path == "/")
-                path = Context.DefaultRoute;
+            if (path.StartsWith(root))
+                path = path.Substring(root.Length);
+
+            if (path.Length == 0)
+                path = "/";
 
             HttpHandlerResult result = null;
+            var tokenSource = new CancellationTokenSource();
             try {
                 result = await GetRouteResult(context, path);
-                await result.ApplyAsync(context);
+                await result.ApplyAsync(context, tokenSource.Token);
+            }
+            catch (Exception) {
+                tokenSource.Cancel();
+                throw;
             }
             finally {
-                result?.Dispose();
-
                 try {
                     context.Response.Close();
                 }
                 catch {}
+
+                try {
+                    result?.Dispose();
+                }
+                catch {}
+
+                tokenSource.Dispose();
             }
         }
 

@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace PiServerLite.Http
@@ -11,7 +12,7 @@ namespace PiServerLite.Http
     {
         private Stream streamContent;
         private Action<Stream> contentAction;
-        private Func<Stream, Task> contentActionAsync;
+        private Func<Stream, CancellationToken, Task> contentActionAsync;
         private string redirectUrl;
 
         public int StatusCode {get; set;}
@@ -63,7 +64,13 @@ namespace PiServerLite.Http
 
         public HttpHandlerResult SetContent(Func<Stream, Task> writeActionAsync)
         {
-            contentActionAsync = writeActionAsync;
+            contentActionAsync = async (stream, token) => await writeActionAsync(stream);
+            return this;
+        }
+
+        public HttpHandlerResult SetContent(Func<Stream, CancellationToken, Task> writeActionAsync)
+        {
+            contentActionAsync = async (stream, token) => await writeActionAsync(stream, token);
             return this;
         }
 
@@ -83,7 +90,18 @@ namespace PiServerLite.Http
                 context.Response.ContentLength64 = ContentLength;
 
             if (contentActionAsync != null) {
-                contentActionAsync.Invoke(context.Response.OutputStream).GetAwaiter().GetResult();
+                var tokenSource = new CancellationTokenSource();
+                try {
+                    var token = tokenSource.Token;
+                    contentActionAsync.Invoke(context.Response.OutputStream, token).GetAwaiter().GetResult();
+                }
+                catch (Exception) {
+                    tokenSource.Cancel();
+                    throw;
+                }
+                finally {
+                    tokenSource.Dispose();
+                }
             }
             else if (contentAction != null) {
                 contentAction.Invoke(context.Response.OutputStream);
@@ -94,7 +112,7 @@ namespace PiServerLite.Http
             }
         }
 
-        internal async Task ApplyAsync(HttpListenerContext context)
+        internal async Task ApplyAsync(HttpListenerContext context, CancellationToken token)
         {
             if (!string.IsNullOrEmpty(redirectUrl)) {
                 context.Response.Redirect(redirectUrl);
@@ -110,7 +128,7 @@ namespace PiServerLite.Http
                 context.Response.ContentLength64 = ContentLength;
 
             if (contentActionAsync != null) {
-                await contentActionAsync.Invoke(context.Response.OutputStream);
+                await contentActionAsync.Invoke(context.Response.OutputStream, token);
             }
             else if (contentAction != null) {
                 await Task.Run(() => contentAction.Invoke(context.Response.OutputStream));
@@ -118,6 +136,7 @@ namespace PiServerLite.Http
             else if (streamContent != null) {
                 streamContent.Seek(0, SeekOrigin.Begin);
                 await streamContent.CopyToAsync(context.Response.OutputStream);
+                await context.Response.OutputStream.FlushAsync();
             }
         }
 
@@ -184,7 +203,7 @@ namespace PiServerLite.Http
                 throw new ApplicationException($"View '{name}' was not found!");
 
             var engine = new HtmlEngine(context.Views) {
-                UrlRoot = context.UrlRoot,
+                UrlRoot = context.ListenUri.AbsolutePath,
             };
 
             content = engine.Process(content, param);

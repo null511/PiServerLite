@@ -1,12 +1,14 @@
-﻿using System.Net;
+﻿using PiServerLite.Html;
+using System.Net;
 
 namespace PiServerLite.Http
 {
-    interface IHttpHandler
+    public interface IHttpHandler
     {
         HttpListenerContext HttpContext {get; set;}
         HttpReceiverContext Context {get; set;}
+        UrlUtility Urls {get;}
 
-        //RequestAs As {get;}
+        void OnRequestReceived();
     }
 }

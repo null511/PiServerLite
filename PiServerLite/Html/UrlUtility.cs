@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using System.Web;
 
 namespace PiServerLite.Html
@@ -15,6 +16,12 @@ namespace PiServerLite.Html
         {
             this.Host = host;
             this.Root = root;
+        }
+
+        public UrlUtility(Uri uri)
+        {
+            this.Host = uri.Host;
+            this.Root = uri.AbsolutePath;
         }
 
         public string GetRelative(string path, object queryArgs = null)

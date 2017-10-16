@@ -7,7 +7,6 @@ namespace PiServerLite.Sample
     internal static class Program
     {
         public const string HttpPrefix = "http://+:8080/piServerLite/";
-        public const string HttpRoot = "/piServerLite";
 
         private static HttpReceiver receiver;
 
@@ -15,8 +14,7 @@ namespace PiServerLite.Sample
         static int Main()
         {
             var context = new HttpReceiverContext {
-                UrlRoot = HttpRoot,
-                DefaultRoute = "/index",
+                ListenUri = new Uri("http://localhost:8080/piServerLite"),
             };
 
             context.ContentDirectories.Add(new ContentDirectory {
@@ -52,7 +50,7 @@ namespace PiServerLite.Sample
             Console.ResetColor();
             Console.WriteLine("Starting Http Server...");
 
-            receiver = new HttpReceiver(HttpPrefix, context);
+            receiver = new HttpReceiver(context, "http://+:8080/piServerLite/");
 
             try {
                 receiver.Routes.Scan(Assembly.GetExecutingAssembly());

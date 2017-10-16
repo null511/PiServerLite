@@ -9,12 +9,25 @@ namespace PiServerLite.Html
             var result = new StringBuilder();
 
             for (var i = 0; i < paths.Length; i++) {
-                var p = paths[i];
+                var path = paths[i];
 
-                if (i > 0 && result[result.Length - 1] != '/' && !p.StartsWith("/"))
-                    result.Append('/');
+                if (result.Length > 0) {
+                    var lastChar = result[result.Length - 1];
 
-                result.Append(p);
+                    if (lastChar == '/') {
+                        if (path.StartsWith("/"))
+                            result.Append(path.Substring(1));
+                    }
+                    else {
+                        if (!path.StartsWith("/"))
+                            result.Append('/');
+
+                        result.Append(path);
+                    }
+                }
+                else {
+                    result.Append(path);
+                }
             }
 
             return result.ToString();

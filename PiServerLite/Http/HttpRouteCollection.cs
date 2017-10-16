@@ -131,6 +131,7 @@ namespace PiServerLite.Http
 
             handlerObj.HttpContext = httpContext;
             handlerObj.Context = context;
+            handlerObj.OnRequestReceived();
 
             return handlerObj;
         }

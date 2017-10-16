@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PiServerLite.Html;
+using System;
 using System.Net;
 using System.Web;
 
@@ -10,7 +11,13 @@ namespace PiServerLite.Http
         public HttpReceiverContext Context {get; set;}
 
         public RequestAs As => new RequestAs(HttpContext.Request);
+        public UrlUtility Urls => new UrlUtility(Context.ListenUri);
 
+
+        public virtual void OnRequestReceived() {}
+
+        //-----------------------------
+        #region Methods
 
         public virtual HttpHandlerResult Get()
         {
@@ -31,6 +38,10 @@ namespace PiServerLite.Http
         {
             return NotFound();
         }
+
+        #endregion
+        //-----------------------------
+        #region Results
 
         public HttpHandlerResult Ok()
         {
@@ -61,6 +72,9 @@ namespace PiServerLite.Http
         {
             return HttpHandlerResult.View(Context, name, param);
         }
+
+        #endregion
+        //-----------------------------
 
         public string GetQuery(string key, string defaultValue = null)
         {

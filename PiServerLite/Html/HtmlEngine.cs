@@ -1,26 +1,33 @@
-﻿using PiServerLite.Http;
+﻿using PiServerLite.Html.Blocks;
+using PiServerLite.Http;
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace PiServerLite.Html
 {
     internal class HtmlEngine
     {
+        public event EventHandler<TagNotFoundEventArgs> VariableNotFound;
+
+        private readonly ConditionalBlock conditionalBlock;
+        private readonly EachBlock eachBlock;
         private readonly ViewCollection views;
 
         public string UrlRoot {get; set;}
-        public TagNotFoundBehavior NotFoundBehavior {get; set;}
-        public string MoustacheStartChars {get; set;}
-        public string MoustacheStopChars {get; set;}
+        public bool RemoveComments {get; set;}
+        public VariableNotFoundBehavior VariableNotFoundBehavior {get; set;}
 
 
         public HtmlEngine(ViewCollection views)
         {
             this.views = views;
 
-            NotFoundBehavior = TagNotFoundBehavior.Source;
-            MoustacheStartChars = "{{";
-            MoustacheStopChars = "}}";
+            RemoveComments = true;
+            VariableNotFoundBehavior = VariableNotFoundBehavior.Source;
+
+            conditionalBlock = new ConditionalBlock(this);
+            eachBlock = new EachBlock(this);
         }
 
         public string Process(string text, object param)
@@ -52,24 +59,27 @@ namespace PiServerLite.Html
             return result.Text;
         }
 
-        private BlockResult ProcessBlock(string text, IDictionary<string, object> valueCollection)
+        public BlockResult ProcessBlock(string text, IDictionary<string, object> valueCollection)
         {
             var result = new BlockResult();
             if (string.IsNullOrEmpty(text))
                 return result;
 
+            if (RemoveComments)
+                text = RemoveTextComments(text);
+
             var read_pos = 0;
             while (read_pos < text.Length) {
                 string tag;
                 int tagStart, tagEnd;
-                if (!FindAnyTag(text, read_pos, out tagStart, out tagEnd, out tag)) break;
+                if (!FindAnyTag(text, "{{", "}}", read_pos, out tagStart, out tagEnd, out tag)) break;
 
                 result.Builder.Append(text, read_pos, tagStart - read_pos);
                 read_pos = tagEnd;
 
                 if (tag.StartsWith("#")) {
                     if (tag.StartsWith("#if ", StringComparison.OrdinalIgnoreCase))
-                        ProcessConditionalBlock(text, tag, valueCollection, result, ref read_pos);
+                        conditionalBlock.Process(text, tag, valueCollection, result, ref read_pos);
 
                     else if (tag.StartsWith("#master ", StringComparison.OrdinalIgnoreCase))
                         ProcessMasterTag(tag, result);
@@ -84,7 +94,7 @@ namespace PiServerLite.Html
                         ProcessStyleBlock(text, valueCollection, result, ref read_pos);
 
                     else if (tag.StartsWith("#each ", StringComparison.OrdinalIgnoreCase))
-                        ProcessEachBlock(text, tag, valueCollection, result, ref read_pos);
+                        eachBlock.Process(text, tag, valueCollection, result, ref read_pos);
 
                     else
                         result.Builder.Append(text.Substring(tagStart, tagEnd - tagStart));
@@ -97,11 +107,11 @@ namespace PiServerLite.Html
                         continue;
                     }
 
-                    switch (NotFoundBehavior) {
-                        case TagNotFoundBehavior.Source:
-                            result.Builder.Append(text.Substring(tagStart, tagEnd - tagStart));
-                            break;
-                    }
+                    var sourceText = text.Substring(tagStart, tagEnd - tagStart);
+                    var varResult = OnVariableNotFound(tag, sourceText);
+
+                    if (!string.IsNullOrEmpty(varResult))
+                        result.Builder.Append(varResult);
                 }
             }
 
@@ -110,48 +120,6 @@ namespace PiServerLite.Html
             }
 
             return result;
-        }
-
-        private void ProcessConditionalBlock(string text, string tag, IDictionary<string, object> valueCollection, BlockResult result, ref int read_pos)
-        {
-            var blockEndStart = text.IndexOf("{{#endif}}", read_pos, StringComparison.OrdinalIgnoreCase);
-            if (blockEndStart < 0) return;
-
-            var blockText = text.Substring(read_pos, blockEndStart - read_pos);
-            read_pos = blockEndStart + 10;
-
-            string trueBlockText, falseBlockText;
-
-            var blockElseStart = blockText.IndexOf("{{#else}}", StringComparison.OrdinalIgnoreCase);
-            if (blockElseStart >= 0) {
-                trueBlockText = blockText.Substring(0, blockElseStart);
-                falseBlockText = blockText.Substring(blockElseStart + 9);
-            }
-            else {
-                trueBlockText = blockText;
-                falseBlockText = string.Empty;
-            }
-
-            bool conditionResult = false;
-
-            var conditionStart = tag.IndexOf(' ');
-            if (conditionStart >= 0) {
-                var condition = tag.Substring(conditionStart+1);
-
-                var invert = condition.StartsWith("!");
-                if (invert) condition = condition.Substring(1);
-
-                object item_value;
-                if (valueCollection != null && GetVariableValue(valueCollection, condition, out item_value))
-                    conditionResult = TruthyEngine.GetValue(item_value);
-
-                if (invert)
-                    conditionResult = !conditionResult;
-            }
-
-            var conditionResultText = conditionResult ? trueBlockText : falseBlockText;
-            var blockResult = ProcessBlock(conditionResultText, valueCollection);
-            result.Builder.Append(blockResult.Builder);
         }
 
         private void ProcessMasterTag(string tag, BlockResult result)
@@ -168,7 +136,7 @@ namespace PiServerLite.Html
             if (valueStart < 0) return;
 
             var url = tag.Substring(valueStart+1).Trim();
-            url = UrlRoot + url;
+            url = NetPath.Combine(UrlRoot, url);
 
             result.Builder.Append(url);
         }
@@ -199,70 +167,7 @@ namespace PiServerLite.Html
             result.Styles.Add(blockResult.Text);
         }
 
-        private bool ProcessEachBlock(string text, string tag, IDictionary<string, object> valueCollection, BlockResult result, ref int readPos)
-        {
-            var endTag = "{{#endeach}}";
-            var blockEndStart = text.IndexOf(endTag, readPos, StringComparison.OrdinalIgnoreCase);
-            if (blockEndStart < 0) return false;
-
-            var blockText = text.Substring(readPos, blockEndStart - readPos);
-            readPos = blockEndStart + endTag.Length;
-
-            var statementStart = tag.IndexOf(' ');
-            if (statementStart < 0) return false;
-
-            var statement = tag.Substring(statementStart + 1).Trim();
-
-            var x = statement.IndexOf('.');
-            if (x < 0) return false;
-
-            var objName = statement.Substring(0, x);
-            var varName = statement.Substring(x + 1);
-
-            object collectionObj;
-            if (!valueCollection.TryGetValue(objName, out collectionObj))
-                return false;
-
-            var collection = collectionObj as IEnumerable<object>;
-            if (collection == null) return false;
-
-            foreach (var obj in collection) {
-                var blockValues = new Dictionary<string, object>(valueCollection, StringComparer.OrdinalIgnoreCase);
-
-                blockValues[varName] = obj;
-
-                var blockResult = ProcessBlock(blockText, blockValues);
-
-                result.Builder.Append(blockResult.Text);
-                // TODO: Append other block result objects?
-            }
-
-            return true;
-        }
-
-        private bool FindAnyTag(string text, int startPos, out int tagStartPos, out int tagEndPos, out string tag)
-        {
-            var tagStart = text.IndexOf(MoustacheStartChars, startPos, StringComparison.Ordinal);
-            if (tagStart < 0) {
-                tagStartPos = tagEndPos = -1;
-                tag = null;
-                return false;
-            }
-
-            var tagEnd = text.IndexOf(MoustacheStopChars, tagStart, StringComparison.Ordinal);
-            if (tagEnd < 0) {
-                tagStartPos = tagEndPos = -1;
-                tag = null;
-                return false;
-            }
-
-            tagStartPos = tagStart;
-            tagEndPos = tagEnd + MoustacheStopChars.Length;
-            tag = text.Substring(tagStart + MoustacheStartChars.Length, tagEnd - tagStart - MoustacheStartChars.Length);
-            return true;
-        }
-
-        protected virtual bool GetVariableValue(IDictionary<string, object> valueCollection, string key, out object value)
+        public virtual bool GetVariableValue(IDictionary<string, object> valueCollection, string key, out object value)
         {
             var keySegments = key.Split('.');
             var rootSegment = keySegments[0];
@@ -293,6 +198,68 @@ namespace PiServerLite.Html
             }
 
             return true;
+        }
+
+        protected virtual string OnVariableNotFound(string tag, string sourceText)
+        {
+            var e = new TagNotFoundEventArgs(tag);
+
+            try {
+                VariableNotFound?.Invoke(this, e);
+            }
+            catch {}
+
+            if (e.Handled) return e.Result;
+
+            switch (VariableNotFoundBehavior) {
+                case VariableNotFoundBehavior.Source:
+                    return sourceText;
+                case VariableNotFoundBehavior.Empty:
+                default:
+                    return null;
+            }
+        }
+
+        private static bool FindAnyTag(string text, string tagStartChars, string tagStopChars, int startPos, out int tagStartPos, out int tagEndPos, out string tag)
+        {
+            var tagStart = text.IndexOf(tagStartChars, startPos, StringComparison.Ordinal);
+            if (tagStart < 0) {
+                tagStartPos = tagEndPos = -1;
+                tag = null;
+                return false;
+            }
+
+            var tagEnd = text.IndexOf(tagStopChars, tagStart, StringComparison.Ordinal);
+            if (tagEnd < 0) {
+                tagStartPos = tagEndPos = -1;
+                tag = null;
+                return false;
+            }
+
+            tagStartPos = tagStart;
+            tagEndPos = tagEnd + tagStopChars.Length;
+            tag = text.Substring(tagStart + tagStartChars.Length, tagEnd - tagStart - tagStartChars.Length);
+            return true;
+        }
+
+        private static string RemoveTextComments(string text)
+        {
+            var result = new StringBuilder();
+
+            var read_pos = 0;
+            while (read_pos < text.Length) {
+                string tag;
+                int tagStart, tagEnd;
+                if (!FindAnyTag(text, "<!--", "-->", read_pos, out tagStart, out tagEnd, out tag)) break;
+
+                result.Append(text, read_pos, tagStart - read_pos);
+                read_pos = tagEnd;
+            }
+
+            if (read_pos < text.Length)
+                result.Append(text, read_pos, text.Length - read_pos);
+
+            return result.ToString();
         }
     }
 }
