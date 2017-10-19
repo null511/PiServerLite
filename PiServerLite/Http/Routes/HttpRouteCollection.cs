@@ -1,32 +1,47 @@
-﻿using System;
+﻿using PiServerLite.Http.Handlers;
+using PiServerLite.Http.Security;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace PiServerLite.Http
+namespace PiServerLite.Http.Routes
 {
-    //public delegate HttpHandlerResult RouteEvent(HttpListenerContext httpContext, HttpReceiverContext context);
-    //public delegate Task<HttpHandlerResult> RouteEventAsync(HttpListenerContext httpContext, HttpReceiverContext context);
-
     public class HttpRouteCollection
     {
-        public Dictionary<string, Type> RouteList {get;}
+        private readonly Dictionary<string, HttpRouteDescription> routeList;
 
 
         public HttpRouteCollection(StringComparer comparer = null)
         {
             var _comparer = comparer ?? StringComparer.OrdinalIgnoreCase;
-            RouteList = new Dictionary<string, Type>(_comparer);
+            routeList = new Dictionary<string, HttpRouteDescription>(_comparer);
         }
 
-        public HttpHandlerResult Execute(string path, HttpListenerContext httpContext, HttpReceiverContext context)
+        public void Scan(Assembly assembly)
         {
-            var handlerObj = GetHandler(path, httpContext, context);
-            if (handlerObj == null) return null;
+            var typeList = assembly.DefinedTypes
+                .Where(t => t.IsClass && !t.IsAbstract);
 
-            var method = httpContext.Request.HttpMethod.ToUpper();
+            foreach (var classType in typeList) {
+                var attrList = classType.GetCustomAttributes<HttpHandlerAttribute>();
+
+                var attrSecure = classType.GetCustomAttribute<SecureAttribute>();
+
+                foreach (var attr in attrList) {
+                    routeList[attr.Path] = new HttpRouteDescription {
+                        ClassType = classType,
+                        IsSecure = attrSecure != null,
+                    };
+                }
+            }
+        }
+
+        internal HttpHandlerResult Execute(IHttpHandler handlerObj)
+        {
+            var method = handlerObj.HttpContext.Request.HttpMethod.ToUpper();
 
             var handlerAsync = handlerObj as HttpHandlerAsync;
             if (handlerAsync != null) {
@@ -63,12 +78,9 @@ namespace PiServerLite.Http
             return null;
         }
 
-        public async Task<HttpHandlerResult> ExecuteAsync(string path, HttpListenerContext httpContext, HttpReceiverContext context)
+        internal async Task<HttpHandlerResult> ExecuteAsync(IHttpHandler handlerObj)
         {
-            var handlerObj = GetHandler(path, httpContext, context);
-            if (handlerObj == null) return null;
-
-            var method = httpContext.Request.HttpMethod.ToUpper();
+            var method = handlerObj.HttpContext.Request.HttpMethod.ToUpper();
 
             var handlerAsync = handlerObj as HttpHandlerAsync;
             if (handlerAsync != null) {
@@ -107,33 +119,20 @@ namespace PiServerLite.Http
             return null;
         }
 
-        public void Scan(Assembly assembly)
+        internal bool FindRoute(string path, out HttpRouteDescription routeDescription)
         {
-            var typeList = assembly.DefinedTypes
-                .Where(t => t.IsClass && !t.IsAbstract);
-
-            foreach (var classType in typeList) {
-                var attrList = classType.GetCustomAttributes<HttpHandlerAttribute>();
-
-                foreach (var attr in attrList)
-                    RouteList[attr.Path] = classType;
-            }
+            return routeList.TryGetValue(path, out routeDescription);
         }
 
-        private IHttpHandler GetHandler(string path, HttpListenerContext httpContext, HttpReceiverContext context)
+        internal IHttpHandler GetHandler(HttpRouteDescription routeDescription, HttpListenerContext httpContext, HttpReceiverContext context)
         {
-            Type type;
-            if (!RouteList.TryGetValue(path, out type))
-                return null;
+            var handler = Activator.CreateInstance(routeDescription.ClassType) as IHttpHandler;
+            if (handler == null) throw new ApplicationException($"Unable to construct HttpHandler implementation '{routeDescription.ClassType.Name}'!");
 
-            var handlerObj = Activator.CreateInstance(type) as IHttpHandler;
-            if (handlerObj == null) throw new ApplicationException($"Unable to construct HttpHandler implementation '{type.Name}'!");
-
-            handlerObj.HttpContext = httpContext;
-            handlerObj.Context = context;
-            handlerObj.OnRequestReceived();
-
-            return handlerObj;
+            handler.HttpContext = httpContext;
+            handler.Context = context;
+            handler.OnRequestReceived();
+            return handler;
         }
     }
 }

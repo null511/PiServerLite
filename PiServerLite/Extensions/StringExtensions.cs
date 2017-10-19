@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace PiServerLite
+namespace PiServerLite.Extensions
 {
     internal static class StringExtensions
     {

@@ -1,4 +1,6 @@
-﻿using System;
+﻿using PiServerLite.Http.Content;
+using PiServerLite.Http.Security;
+using System;
 using System.Collections.Generic;
 
 namespace PiServerLite.Http
@@ -31,6 +33,8 @@ namespace PiServerLite.Http
         /// </summary>
         /// <remarks>Mime-Type is determined using <seealso cref="MimeTypes"/>.</remarks>
         public List<ContentDirectory> ContentDirectories {get; set;}
+
+        public ISecurityManager SecurityMgr {get; set;}
 
 
         public HttpReceiverContext()

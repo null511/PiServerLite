@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 
@@ -6,14 +7,14 @@ namespace PiServerLite.Http
 {
     public class ViewCollection
     {
-        private readonly Dictionary<string, string> viewCacheList;
-        private readonly Dictionary<string, Func<string>> viewGetList;
+        private readonly ConcurrentDictionary<string, string> viewCacheList;
+        private readonly Dictionary<string, Func<string>> viewList;
 
 
         public ViewCollection()
         {
-            viewCacheList = new Dictionary<string, string>();
-            viewGetList = new Dictionary<string, Func<string>>();
+            viewCacheList = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            viewList = new Dictionary<string, Func<string>>(StringComparer.OrdinalIgnoreCase);
         }
 
         public bool TryFind(string viewName, out string content)
@@ -22,7 +23,7 @@ namespace PiServerLite.Http
                 return true;
 
             Func<string> getFunc;
-            if (viewGetList.TryGetValue(viewName, out getFunc)) {
+            if (viewList.TryGetValue(viewName, out getFunc)) {
                 content = getFunc();
                 viewCacheList[viewName] = content;
                 return true;
@@ -34,13 +35,13 @@ namespace PiServerLite.Http
 
         public ViewCollection Add(string viewName, Func<string> getFunc)
         {
-            viewGetList[viewName] = getFunc;
+            viewList[viewName] = getFunc;
             return this;
         }
 
         public ViewCollection AddFromExternal(string filename, string viewName = null)
         {
-            viewGetList[viewName ?? filename] = () => LoadFromExternal(filename);
+            viewList[viewName ?? filename] = () => LoadFromExternal(filename);
             return this;
         }
 
@@ -57,7 +58,7 @@ namespace PiServerLite.Http
                 if (!string.IsNullOrEmpty(prefix))
                     viewName = prefix+viewName;
 
-                viewGetList[viewName] = () => LoadFromExternal(filename);
+                viewList[viewName] = () => LoadFromExternal(filename);
             }
 
             return this;
@@ -65,7 +66,7 @@ namespace PiServerLite.Http
 
         public ViewCollection AddFromAssembly(string path, string viewName = null)
         {
-            viewGetList[viewName ?? path] = () => LoadFromAssembly(path);
+            viewList[viewName ?? path] = () => LoadFromAssembly(path);
             return this;
         }
 

@@ -1,7 +1,7 @@
 ﻿using PiServerLite.Html;
 using System.Net;
 
-namespace PiServerLite.Http
+namespace PiServerLite.Http.Handlers
 {
     public interface IHttpHandler
     {

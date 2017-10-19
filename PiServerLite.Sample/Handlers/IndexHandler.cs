@@ -1,4 +1,4 @@
-﻿using PiServerLite.Http;
+﻿using PiServerLite.Http.Handlers;
 
 namespace PiServerLite.Sample.Handlers
 {

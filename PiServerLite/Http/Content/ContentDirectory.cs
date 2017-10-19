@@ -1,4 +1,4 @@
-﻿namespace PiServerLite.Http
+﻿namespace PiServerLite.Http.Content
 {
     public class ContentDirectory
     {

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace PiServerLite
+namespace PiServerLite.Http.Content
 {
     public class MimeTypeDictionary : Dictionary<string, string>
     {

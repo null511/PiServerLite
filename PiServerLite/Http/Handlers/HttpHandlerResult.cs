@@ -1,4 +1,5 @@
 ﻿using PiServerLite.Html;
+using PiServerLite.Http.Content;
 using System;
 using System.IO;
 using System.Net;
@@ -6,10 +7,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace PiServerLite.Http
+namespace PiServerLite.Http.Handlers
 {
     public class HttpHandlerResult : IDisposable
     {
+        private readonly HttpReceiverContext context;
+
         private Stream streamContent;
         private Action<Stream> contentAction;
         private Func<Stream, CancellationToken, Task> contentActionAsync;
@@ -23,6 +26,11 @@ namespace PiServerLite.Http
 
         public MimeTypeDictionary MimeTypes {get; set;}
 
+
+        public HttpHandlerResult(HttpReceiverContext context)
+        {
+            this.context = context;
+        }
 
         public void Dispose()
         {
@@ -140,33 +148,68 @@ namespace PiServerLite.Http
             }
         }
 
-        public static HttpHandlerResult Ok()
+        public static HttpHandlerResult Ok(HttpReceiverContext context)
         {
-            return new HttpHandlerResult() {
+            return new HttpHandlerResult(context) {
                 StatusCode = (int)HttpStatusCode.OK,
                 StatusDescription = "OK.",
             };
         }
 
-        public static HttpHandlerResult NotFound()
+        public static HttpHandlerResult NotFound(HttpReceiverContext context)
         {
-            return new HttpHandlerResult() {
+            return new HttpHandlerResult(context) {
                 StatusCode = (int)HttpStatusCode.NotFound,
                 StatusDescription = "Not Found!",
             }.SetText("404 - Not Found");
         }
 
-        public static HttpHandlerResult BadRequest()
+        /// <summary>
+        /// Return a [400] HTTP Bad Request response.
+        /// </summary>
+        /// <returns>HTTP [400] Bad Request.</returns>
+        public static HttpHandlerResult BadRequest(HttpReceiverContext context)
         {
-            return new HttpHandlerResult() {
+            return new HttpHandlerResult(context) {
                 StatusCode = (int)HttpStatusCode.BadRequest,
                 StatusDescription = "Bad Request!",
             };
         }
 
-        public static HttpHandlerResult Redirect(string url)
+        /// <summary>
+        /// Return a [401] HTTP Unauthorized response.
+        /// </summary>
+        /// <returns>HTTP [401] Unauthorized.</returns>
+        public static HttpHandlerResult Unauthorized(HttpReceiverContext context)
         {
-            return new HttpHandlerResult() {
+            return new HttpHandlerResult(context) {
+                StatusCode = (int)HttpStatusCode.Unauthorized,
+                StatusDescription = "Unauthorized!",
+            };
+        }
+
+        /// <summary>
+        /// Redirect the response to a relative path.
+        /// </summary>
+        /// <returns>HTTP [302] Redirect.</returns>
+        public static HttpHandlerResult Redirect(HttpReceiverContext context, string path, object queryArgs = null)
+        {
+            var urlUtility = new UrlUtility(context.ListenUri);
+            var url = urlUtility.GetRelative(path, queryArgs);
+
+            return new HttpHandlerResult(context) {
+                StatusCode = (int)HttpStatusCode.Redirect,
+                redirectUrl = url,
+            };
+        }
+
+        /// <summary>
+        /// Redirect the response to an absolute URL.
+        /// </summary>
+        /// <returns>HTTP [302] Redirect.</returns>
+        public static HttpHandlerResult RedirectUrl(HttpReceiverContext context, string url)
+        {
+            return new HttpHandlerResult(context) {
                 StatusCode = (int)HttpStatusCode.Redirect,
                 redirectUrl = url,
             };
@@ -176,7 +219,7 @@ namespace PiServerLite.Http
         {
             var ext = Path.GetExtension(filename);
 
-            return new HttpHandlerResult() {
+            return new HttpHandlerResult(context) {
                 StatusCode = (int)HttpStatusCode.OK,
                 StatusDescription = "OK.",
                 ContentType = context.MimeTypes.Get(ext),
@@ -188,14 +231,23 @@ namespace PiServerLite.Http
             });
         }
 
-        public static HttpHandlerResult Exception(Exception error)
+        /// <summary>
+        /// Return a [500] HTTP Internal Server Error response.
+        /// </summary>
+        /// <returns>HTTP [500] Internal Server Error.</returns>
+        public static HttpHandlerResult Exception(HttpReceiverContext context, Exception error)
         {
-            return new HttpHandlerResult() {
-                StatusCode = (int)HttpStatusCode.NotFound,
-                StatusDescription = "Not Found!",
+            return new HttpHandlerResult(context) {
+                StatusCode = (int)HttpStatusCode.InternalServerError,
+                StatusDescription = "Internal Server Error!",
             }.SetText(error.ToString());
         }
 
+        /// <summary>
+        /// Returns a named view from the <see cref="ViewCollection"/>.
+        /// </summary>
+        /// <param name="name">The name of the view.</param>
+        /// <param name="param">Optional view-model object.</param>
         public static HttpHandlerResult View(HttpReceiverContext context, string name, object param = null)
         {
             string content;
@@ -208,7 +260,7 @@ namespace PiServerLite.Http
 
             content = engine.Process(content, param);
 
-            return new HttpHandlerResult {
+            return new HttpHandlerResult(context) {
                 StatusCode = (int)HttpStatusCode.OK,
                 StatusDescription = "OK.",
             }.SetText(content);

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PiServerLite.Extensions;
+using System;
 using System.Text;
 using System.Web;
 
@@ -11,12 +12,6 @@ namespace PiServerLite.Html
 
 
         public UrlUtility() {}
-
-        public UrlUtility(string host, string root)
-        {
-            this.Host = host;
-            this.Root = root;
-        }
 
         public UrlUtility(Uri uri)
         {

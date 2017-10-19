@@ -1,11 +1,13 @@
-﻿using PiServerLite.Html;
+﻿using PiServerLite.Extensions;
+using PiServerLite.Html;
 using System;
 using System.Net;
+using System.Threading.Tasks;
 using System.Web;
 
-namespace PiServerLite.Http
+namespace PiServerLite.Http.Handlers
 {
-    public abstract class HttpHandler : IHttpHandler
+    public abstract class HttpHandlerAsync : IHttpHandler
     {
         public HttpListenerContext HttpContext {get; set;}
         public HttpReceiverContext Context {get; set;}
@@ -19,24 +21,24 @@ namespace PiServerLite.Http
         //-----------------------------
         #region Methods
 
-        public virtual HttpHandlerResult Get()
+        public virtual async Task<HttpHandlerResult> GetAsync()
         {
-            return NotFound();
+            return await Task.Run(() => NotFound());
         }
 
-        public virtual HttpHandlerResult Post()
+        public virtual async Task<HttpHandlerResult> PostAsync()
         {
-            return NotFound();
+            return await Task.Run(() => NotFound());
         }
 
-        public virtual HttpHandlerResult Head()
+        public virtual async Task<HttpHandlerResult> HeadAsync()
         {
-            return NotFound();
+            return await Task.Run(() => NotFound());
         }
 
-        public virtual HttpHandlerResult Options()
+        public virtual async Task<HttpHandlerResult> OptionsAsync()
         {
-            return NotFound();
+            return await Task.Run(() => NotFound());
         }
 
         #endregion
@@ -45,27 +47,32 @@ namespace PiServerLite.Http
 
         public HttpHandlerResult Ok()
         {
-            return HttpHandlerResult.Ok();
+            return HttpHandlerResult.Ok(Context);
         }
 
         public HttpHandlerResult NotFound()
         {
-            return HttpHandlerResult.NotFound();
+            return HttpHandlerResult.NotFound(Context);
         }
 
         public HttpHandlerResult BadRequest()
         {
-            return HttpHandlerResult.BadRequest();
+            return HttpHandlerResult.BadRequest(Context);
         }
 
-        public HttpHandlerResult Redirect(string url)
+        public HttpHandlerResult Redirect(string path, object queryArgs = null)
         {
-            return HttpHandlerResult.Redirect(url);
+            return HttpHandlerResult.Redirect(Context, path, queryArgs);
+        }
+
+        public HttpHandlerResult RedirectUrl(string url)
+        {
+            return HttpHandlerResult.RedirectUrl(Context, url);
         }
 
         public HttpHandlerResult Exception(Exception error)
         {
-            return HttpHandlerResult.Exception(error);
+            return HttpHandlerResult.Exception(Context, error);
         }
 
         public HttpHandlerResult View(string name, object param = null)

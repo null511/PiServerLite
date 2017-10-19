@@ -1,4 +1,7 @@
-﻿using System;
+﻿using PiServerLite.Http.Content;
+using PiServerLite.Http.Handlers;
+using PiServerLite.Http.Routes;
+using System;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -20,13 +23,21 @@ namespace PiServerLite.Http
         /// </summary>
         public event EventHandler HttpError;
 
+        /// <summary>
+        /// Gets the underlying <see cref="HttpListener"/> instance.
+        /// </summary>
         public HttpListener Listener {get;}
+
+        /// <summary>
+        /// Gets the collection of route mappings.
+        /// </summary>
         public HttpRouteCollection Routes {get;}
+
         public HttpReceiverContext Context {get;}
 
 
         /// <summary>
-        /// Creates an <see cref="HttpReceiver"/> instance with no attached prefixes.
+        /// Creates an instance of <see cref="HttpReceiver"/> with no attached prefixes.
         /// </summary>
         /// <param name="context"></param>
         public HttpReceiver(HttpReceiverContext context)
@@ -37,6 +48,15 @@ namespace PiServerLite.Http
             Routes = new HttpRouteCollection();
         }
 
+        /// <summary>
+        /// Creates an instance of <see cref="HttpReceiver"/> with the given prefix.
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="prefix">
+        /// A string that identifies the URI information that is
+        /// compared in incoming requests. The prefix must be
+        /// terminated with a forward slash ("/").
+        /// </param>
         public HttpReceiver(HttpReceiverContext context, string prefix) : this(context)
         {
             Listener.Prefixes.Add(prefix);
@@ -48,26 +68,40 @@ namespace PiServerLite.Http
             Listener?.Close();
         }
 
+        /// <summary>
+        /// Start receiving incoming HTTP requests.
+        /// </summary>
         public void Start()
         {
             Listener.Start();
-            Wait();
+            BeginWait();
         }
 
+        /// <summary>
+        /// Stop receiving incoming HTTP requests.
+        /// </summary>
         public void Stop()
         {
             Listener.Stop();
         }
 
-        private void Wait()
-        {
-            var state = new object();
-            Listener.BeginGetContext(OnContextReceived, state);
-        }
-
+        /// <summary>
+        /// Add a URI prefix to the collection of handled prefixes.
+        /// </summary>
+        /// <param name="prefix">
+        /// A string that identifies the URI information that is
+        /// compared in incoming requests. The prefix must be
+        /// terminated with a forward slash ("/").
+        /// </param>
         public void AddPrefix(string prefix)
         {
             Listener.Prefixes.Add(prefix);
+        }
+
+        private void BeginWait()
+        {
+            var state = new object();
+            Listener.BeginGetContext(OnContextReceived, state);
         }
 
         private void OnContextReceived(IAsyncResult result)
@@ -85,11 +119,12 @@ namespace PiServerLite.Http
                 return;
             }
             finally {
-                if (Listener.IsListening) Wait();
+                if (Listener.IsListening) BeginWait();
             }
 
             try {
-                RouteRequest(context);
+                var routeTask = RouteRequest(context);
+                // TODO: Maintain a collection of active route tasks
             }
             catch (Exception error) {
                 OnHttpError(error);
@@ -113,7 +148,10 @@ namespace PiServerLite.Http
             HttpHandlerResult result = null;
             var tokenSource = new CancellationTokenSource();
             try {
-                result = await GetRouteResult(context, path);
+                result = (await GetRouteResult(context, path))
+                    ?? HttpHandlerResult.NotFound(Context)
+                        .SetText($"No content found matching path '{path}'!");
+
                 await result.ApplyAsync(context, tokenSource.Token);
             }
             catch (Exception) {
@@ -146,17 +184,38 @@ namespace PiServerLite.Http
                 return ProcessContent(httpContext, localPath, contentRoute);
             }
 
-            // Handlers
-            try {
-                var result = await Routes.ExecuteAsync(path, httpContext, Context);
-                if (result != null) return result;
-            }
-            catch (Exception error) {
-                return HttpHandlerResult.Exception(error);
+            // Http Route
+            HttpRouteDescription routeDesc;
+            if (Routes.FindRoute(path, out routeDesc)) {
+                if (routeDesc.IsSecure && !AuthorizeRoute(httpContext)) {
+                    return Context.SecurityMgr.OnUnauthorized(httpContext, Context)
+                        ?? HttpHandlerResult.Unauthorized(Context);
+                }
+
+                try {
+                    var handler = Routes.GetHandler(routeDesc, httpContext, Context);
+                    if (handler == null) return null;
+
+                    return await Routes.ExecuteAsync(handler);
+                }
+                catch (Exception error) {
+                    return HttpHandlerResult.Exception(Context, error);
+                }
             }
 
-            return HttpHandlerResult.NotFound()
-                .SetText($"No handler found matching path '{path}'!");
+            // Not Found
+            return null;
+        }
+
+        private bool AuthorizeRoute(HttpListenerContext httpContext)
+        {
+            if (Context.SecurityMgr == null) return false;
+
+            var token = Context.SecurityMgr.GetContextToken(httpContext);
+            if (string.IsNullOrEmpty(token)) return false;
+
+            var user = Context.SecurityMgr.Authorize(token);
+            return user != null;
         }
 
         private HttpHandlerResult ProcessContent(HttpListenerContext context, string localPath, ContentDirectory directory)
@@ -167,7 +226,8 @@ namespace PiServerLite.Http
             var filename = Path.Combine(directory.DirectoryPath, localPath);
 
             if (!File.Exists(filename))
-                return HttpHandlerResult.NotFound();
+                return HttpHandlerResult.NotFound(Context)
+                    .SetText($"File not found! '{filename}'");
 
             return HttpHandlerResult.File(Context, filename);
         }
