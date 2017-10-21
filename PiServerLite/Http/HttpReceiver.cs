@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -33,6 +34,10 @@ namespace PiServerLite.Http
         /// </summary>
         public HttpRouteCollection Routes {get;}
 
+        /// <summary>
+        /// Collection of configuration information and resources
+        /// used to define this <see cref="HttpReceiver"/>.
+        /// </summary>
         public HttpReceiverContext Context {get;}
 
 
@@ -62,6 +67,10 @@ namespace PiServerLite.Http
             Listener.Prefixes.Add(prefix);
         }
 
+        /// <summary>
+        /// Stops receiving incoming requests and
+        /// shuts down the <see cref="HttpListener"/>.
+        /// </summary>
         public void Dispose()
         {
             Stop();
@@ -106,9 +115,9 @@ namespace PiServerLite.Http
 
         private void OnContextReceived(IAsyncResult result)
         {
-            HttpListenerContext context;
+            HttpListenerContext httpContext;
             try {
-                context = Listener.EndGetContext(result);
+                httpContext = Listener.EndGetContext(result);
             }
             catch (ObjectDisposedException) {
                 // ignore
@@ -123,19 +132,36 @@ namespace PiServerLite.Http
             }
 
             try {
-                var routeTask = RouteRequest(context);
-                // TODO: Maintain a collection of active route tasks
+                var routeTask = RouteRequest(httpContext)
+                    .ContinueWith(t => {
+                        // TODO: Remove from collection of active route tasks
+
+                        try {
+                            httpContext.Response.Close();
+                        }
+                        catch {}
+                    });
+
+                // TODO: Add to collection of active route tasks
             }
             catch (Exception error) {
                 OnHttpError(error);
             }
         }
 
-        private async Task RouteRequest(HttpListenerContext context)
+        private async Task RouteRequest(HttpListenerContext httpContext)
         {
-            var path = context.Request.Url.AbsolutePath.TrimEnd('/');
+            if (Context.UseSecure) {
+                // Auto-Redirect HTTP to HTTPS
+                if (!string.Equals("https", httpContext.Request.Url.Scheme, StringComparison.OrdinalIgnoreCase)) {
+                    RedirectToSecure(httpContext);
+                    return;
+                }
+            }
 
-            Console.WriteLine($"Request received from '{context.Request.RemoteEndPoint}' -> '{path}'.");
+            var path = httpContext.Request.Url.AbsolutePath.TrimEnd('/');
+
+            Console.WriteLine($"Request received from '{httpContext.Request.RemoteEndPoint}' -> '{path}'.");
 
             var root = Context.ListenUri.AbsolutePath.TrimEnd('/');
 
@@ -148,22 +174,17 @@ namespace PiServerLite.Http
             HttpHandlerResult result = null;
             var tokenSource = new CancellationTokenSource();
             try {
-                result = (await GetRouteResult(context, path))
+                result = (await GetRouteResult(httpContext, path))
                     ?? HttpHandlerResult.NotFound(Context)
                         .SetText($"No content found matching path '{path}'!");
 
-                await result.ApplyAsync(context, tokenSource.Token);
+                await result.ApplyAsync(httpContext, tokenSource.Token);
             }
             catch (Exception) {
                 tokenSource.Cancel();
                 throw;
             }
             finally {
-                try {
-                    context.Response.Close();
-                }
-                catch {}
-
                 try {
                     result?.Dispose();
                 }
@@ -230,6 +251,20 @@ namespace PiServerLite.Http
                     .SetText($"File not found! '{filename}'");
 
             return HttpHandlerResult.File(Context, filename);
+        }
+
+        private void RedirectToSecure(HttpListenerContext httpContext)
+        {
+            var uriBuilder = new StringBuilder()
+                .Append("https://").Append(httpContext.Request.Url.Host);
+
+            if (Context.SecurePort != 443)
+                uriBuilder.Append(':').Append(Context.SecurePort);
+
+            uriBuilder.Append(httpContext.Request.RawUrl);
+
+            var newUrl = uriBuilder.ToString();
+            httpContext.Response.Redirect(newUrl);
         }
 
         protected virtual void OnHttpError(Exception error)

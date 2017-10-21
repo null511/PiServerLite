@@ -34,14 +34,32 @@ namespace PiServerLite.Http
         /// <remarks>Mime-Type is determined using <seealso cref="MimeTypes"/>.</remarks>
         public List<ContentDirectory> ContentDirectories {get; set;}
 
+        /// <summary>
+        /// Optional implementation of <see cref="ISecurityManager"/> for authenticating
+        /// requests to resource marked by the <see cref="SecureAttribute"/>.
+        /// </summary>
         public ISecurityManager SecurityMgr {get; set;}
 
+        /// <summary>
+        /// When enabled, HTTP requests will be redirected to HTTPS.
+        /// </summary>
+        public bool UseSecure {get; set;}
 
+        /// <summary>
+        /// Port to use for HTTPS communication. Default is 443.
+        /// </summary>
+        public int SecurePort {get; set;}
+
+
+        /// <summary>
+        /// Constructs a new instance of <see cref="HttpReceiverContext"/>.
+        /// </summary>
         public HttpReceiverContext()
         {
             Views = new ViewCollection();
             MimeTypes = MimeTypeDictionary.CreateDefault();
             ContentDirectories = new List<ContentDirectory>();
+            SecurePort = 443;
         }
     }
 }
