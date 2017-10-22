@@ -244,13 +244,23 @@ namespace PiServerLite.Http
             if (Path.DirectorySeparatorChar != '/')
                 localPath = localPath.Replace('/', Path.DirectorySeparatorChar);
 
-            var filename = Path.Combine(directory.DirectoryPath, localPath);
+            var localFilename = Path.Combine(directory.DirectoryPath, localPath);
 
-            if (!File.Exists(filename))
+            // Ensure requested content is within the specified directory
+            // IE, prevent relative path hacking
+            var fullRootPath = Path.GetFullPath(directory.DirectoryPath);
+            var fullLocalFilename = Path.GetFullPath(localFilename);
+
+            if (!fullLocalFilename.StartsWith(fullRootPath))
                 return HttpHandlerResult.NotFound(Context)
-                    .SetText($"File not found! '{filename}'");
+                    .SetText($"Requested file is outisde of the content directory! [{fullLocalFilename}]");
 
-            return HttpHandlerResult.File(Context, filename);
+            // Ensure file exists
+            if (!File.Exists(fullLocalFilename))
+                return HttpHandlerResult.NotFound(Context)
+                    .SetText($"File not found! [{fullLocalFilename}]");
+
+            return HttpHandlerResult.File(Context, fullLocalFilename);
         }
 
         private void RedirectToSecure(HttpListenerContext httpContext)
