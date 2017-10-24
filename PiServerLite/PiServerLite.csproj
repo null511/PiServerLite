@@ -61,6 +61,7 @@
     <Compile Include="Http\Routes\HttpRouteCollection.cs" />
     <Compile Include="Http\Handlers\IHttpHandler.cs" />
     <Compile Include="Http\Routes\HttpRouteDescription.cs" />
+    <Compile Include="Http\Security\HttpsStates.cs" />
     <Compile Include="Http\Security\ISecurityManager.cs" />
     <Compile Include="Http\Handlers\RequestAs.cs" />
     <Compile Include="Http\Content\MimeTypeDictionary.cs" />

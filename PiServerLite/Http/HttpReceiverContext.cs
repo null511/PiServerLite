@@ -43,23 +43,31 @@ namespace PiServerLite.Http
         /// <summary>
         /// When enabled, HTTP requests will be redirected to HTTPS.
         /// </summary>
-        public bool UseSecure {get; set;}
+        public HttpsStates Https {get; set;}
+
+        /// <summary>
+        /// Port to use for HTTP communication. Default is 80.
+        /// </summary>
+        public int HttpPort {get; set;}
 
         /// <summary>
         /// Port to use for HTTPS communication. Default is 443.
         /// </summary>
-        public int SecurePort {get; set;}
+        public int HttpsPort {get; set;}
 
 
         /// <summary>
-        /// Constructs a new instance of <see cref="HttpReceiverContext"/>.
+        /// Constructs a new instance of <see cref="HttpReceiverContext"/>
+        /// with the default settings.
         /// </summary>
         public HttpReceiverContext()
         {
+            HttpPort = 80;
+            HttpsPort = 443;
+
             Views = new ViewCollection();
             MimeTypes = MimeTypeDictionary.CreateDefault();
             ContentDirectories = new List<ContentDirectory>();
-            SecurePort = 443;
         }
     }
 }

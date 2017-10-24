@@ -1,6 +1,7 @@
 ﻿using PiServerLite.Http.Content;
 using PiServerLite.Http.Handlers;
 using PiServerLite.Http.Routes;
+using PiServerLite.Http.Security;
 using System;
 using System.IO;
 using System.Linq;
@@ -151,7 +152,7 @@ namespace PiServerLite.Http
 
         private async Task RouteRequest(HttpListenerContext httpContext)
         {
-            if (Context.UseSecure) {
+            if (Context.Https == HttpsStates.Forced) {
                 // Auto-Redirect HTTP to HTTPS
                 if (!string.Equals("https", httpContext.Request.Url.Scheme, StringComparison.OrdinalIgnoreCase)) {
                     RedirectToSecure(httpContext);
@@ -265,11 +266,14 @@ namespace PiServerLite.Http
 
         private void RedirectToSecure(HttpListenerContext httpContext)
         {
+            if (Context.HttpsPort <= 0)
+                throw new ArgumentOutOfRangeException(nameof(Context.HttpsPort), "Value must be greater than 0!");
+
             var uriBuilder = new StringBuilder()
                 .Append("https://").Append(httpContext.Request.Url.Host);
 
-            if (Context.SecurePort != 443)
-                uriBuilder.Append(':').Append(Context.SecurePort);
+            if (Context.HttpsPort != 443)
+                uriBuilder.Append(':').Append(Context.HttpsPort);
 
             uriBuilder.Append(httpContext.Request.RawUrl);
 
