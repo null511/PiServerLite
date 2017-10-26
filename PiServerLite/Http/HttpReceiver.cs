@@ -234,10 +234,8 @@ namespace PiServerLite.Http
             if (Context.SecurityMgr == null) return false;
 
             var token = Context.SecurityMgr.GetContextToken(httpContext);
-            if (string.IsNullOrEmpty(token)) return false;
 
-            var user = Context.SecurityMgr.Authorize(token);
-            return user != null;
+            return Context.SecurityMgr.Authorize(token);
         }
 
         private HttpHandlerResult ProcessContent(HttpListenerContext context, string localPath, ContentDirectory directory)
