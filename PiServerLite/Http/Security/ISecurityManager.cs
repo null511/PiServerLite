@@ -5,13 +5,8 @@ namespace PiServerLite.Http.Security
 {
     public interface ISecurityManager
     {
-        bool Authenticate(ISecurityUser user, out string token);
-        bool Authorize(string token);
-        ISecurityUser GetUser(string token);
-        HttpHandlerResult OnUnauthorized(HttpListenerContext httpContext, HttpReceiverContext context);
-        void SignOut(HttpListenerContext httpContext);
+        bool Authorize(HttpListenerRequest request);
 
-        string GetContextToken(HttpListenerContext httpContext);
-        void SetContextToken(HttpListenerContext httpContext, string token);
+        HttpHandlerResult OnUnauthorized(HttpListenerContext httpContext, HttpReceiverContext context);
     }
 }
