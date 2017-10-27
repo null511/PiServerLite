@@ -194,7 +194,7 @@ namespace PiServerLite.Http.Handlers
         /// <returns>HTTP [302] Redirect.</returns>
         public static HttpHandlerResult Redirect(HttpReceiverContext context, string path, object queryArgs = null)
         {
-            var urlUtility = new UrlUtility(context.ListenUri);
+            var urlUtility = new UrlUtility(context);
             var url = urlUtility.GetRelative(path, queryArgs);
 
             return new HttpHandlerResult(context) {
@@ -255,7 +255,7 @@ namespace PiServerLite.Http.Handlers
                 throw new ApplicationException($"View '{name}' was not found!");
 
             var engine = new HtmlEngine(context.Views) {
-                UrlRoot = context.ListenUri.AbsolutePath,
+                UrlRoot = context.ListenerPath,
             };
 
             content = engine.Process(content, param);

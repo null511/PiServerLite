@@ -13,7 +13,7 @@ namespace PiServerLite.Http.Handlers
         public HttpReceiverContext Context {get; set;}
 
         public RequestAs As => new RequestAs(HttpContext.Request);
-        public UrlUtility Urls => new UrlUtility(Context.ListenUri);
+        public UrlUtility Urls => new UrlUtility(Context);
 
 
         public virtual void OnRequestReceived() {}
@@ -83,6 +83,9 @@ namespace PiServerLite.Http.Handlers
         #endregion
         //-----------------------------
 
+        /// <summary>
+        /// Gets a value from the query string.
+        /// </summary>
         public string GetQuery(string key, string defaultValue = null)
         {
             var value = HttpContext.Request.QueryString.Get(key);
@@ -90,6 +93,9 @@ namespace PiServerLite.Http.Handlers
             return HttpUtility.UrlDecode(value);
         }
 
+        /// <summary>
+        /// Gets a value from the query string, cast to the specified type.
+        /// </summary>
         public T GetQuery<T>(string key, T defaultValue = default(T))
         {
             var value = HttpContext.Request.QueryString.Get(key);

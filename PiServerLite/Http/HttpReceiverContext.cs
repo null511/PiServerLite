@@ -15,7 +15,9 @@ namespace PiServerLite.Http
         /// The full external URI used to access the receiver.
         /// ie: 'http://localhost:8080/piServer/'
         /// </summary>
-        public Uri ListenUri {get; set;}
+        //public Uri ListenUri {get; set;}
+
+        public string ListenerPath {get; set;}
 
         /// <summary>
         /// A collection of string-based view resources.

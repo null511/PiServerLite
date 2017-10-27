@@ -2,6 +2,7 @@
 
 namespace PiServerLite.Sample.Handlers
 {
+    [HttpHandler("/")]
     [HttpHandler("/index")]
     class IndexHandler : HttpHandler
     {

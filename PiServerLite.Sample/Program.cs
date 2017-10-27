@@ -7,15 +7,14 @@ namespace PiServerLite.Sample
 {
     internal static class Program
     {
-        public const string HttpPrefix = "http://+:8080/piServerLite/";
-
         private static HttpReceiver receiver;
 
 
         static int Main()
         {
             var context = new HttpReceiverContext {
-                ListenUri = new Uri("http://localhost:8080/piServerLite"),
+                ListenerPath = "/piServerLite",
+                HttpPort = 8080,
             };
 
             context.ContentDirectories.Add(new ContentDirectory {

@@ -1,5 +1,5 @@
 ﻿using PiServerLite.Extensions;
-using System;
+using PiServerLite.Http;
 using System.Text;
 using System.Web;
 
@@ -7,21 +7,19 @@ namespace PiServerLite.Html
 {
     public class UrlUtility
     {
-        public string Host {get;}
-        public string Root {get;}
+        public string RootPath {get;}
 
 
         public UrlUtility() {}
 
-        public UrlUtility(Uri uri)
+        public UrlUtility(HttpReceiverContext context)
         {
-            this.Host = uri.Host;
-            this.Root = uri.AbsolutePath;
+            this.RootPath = context.ListenerPath;
         }
 
         public string GetRelative(string path, object queryArgs = null)
         {
-            var url = NetPath.Combine(Root, path);
+            var url = NetPath.Combine(RootPath, path);
 
             if (queryArgs != null) {
                 var argList = ObjectExtensions.ToDictionary(queryArgs);

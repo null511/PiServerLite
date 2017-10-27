@@ -19,11 +19,16 @@ namespace PiServerLite.Http
     public class HttpReceiver : IDisposable
     {
         /// <summary>
-        /// Occurs when an exception is thrown by the underlying
-        /// <see cref="HttpListener"/>, or when an uncaught exception
-        /// is raised by an <see cref="IHttpHandler"/> implementation.
+        /// Occurs when an exception is thrown by the
+        /// underlying <see cref="HttpListener"/>.
         /// </summary>
         public event EventHandler HttpError;
+
+        /// <summary>
+        /// Occurs when an exception is thrown when an uncaught exception
+        /// is raised by an <see cref="IHttpHandler"/> implementation.
+        /// </summary>
+        public event EventHandler ServerError;
 
         /// <summary>
         /// Gets the underlying <see cref="HttpListener"/> instance.
@@ -146,7 +151,7 @@ namespace PiServerLite.Http
                 // TODO: Add to collection of active route tasks
             }
             catch (Exception error) {
-                OnHttpError(error);
+                OnServerError(error);
             }
         }
 
@@ -164,7 +169,7 @@ namespace PiServerLite.Http
 
             Console.WriteLine($"Request received from '{httpContext.Request.RemoteEndPoint}' -> '{path}'.");
 
-            var root = Context.ListenUri.AbsolutePath.TrimEnd('/');
+            var root = Context.ListenerPath.TrimEnd('/');
 
             if (path.StartsWith(root))
                 path = path.Substring(root.Length);
@@ -202,7 +207,6 @@ namespace PiServerLite.Http
                 .FirstOrDefault(x => path.StartsWith(x.UrlPath));
 
             if (contentRoute != null) {
-                // TODO: AUTH
                 if (contentRoute.IsSecure && Context.SecurityMgr != null) {
                     if (!Context.SecurityMgr.Authorize(httpContext.Request)) {
                         return Context.SecurityMgr.OnUnauthorized(httpContext, Context)
@@ -263,6 +267,10 @@ namespace PiServerLite.Http
             return HttpHandlerResult.File(Context, fullLocalFilename);
         }
 
+        /// <summary>
+        /// Redirects an incoming request to HTTPS.
+        /// </summary>
+        /// <param name="httpContext"></param>
         private void RedirectToSecure(HttpListenerContext httpContext)
         {
             if (Context.HttpsPort <= 0)
@@ -280,10 +288,24 @@ namespace PiServerLite.Http
             httpContext.Response.Redirect(newUrl);
         }
 
+        /// <summary>
+        /// Raises the <see cref="HttpError"/> event.
+        /// </summary>
         protected virtual void OnHttpError(Exception error)
         {
             try {
                 HttpError?.Invoke(this, new EventArgs());
+            }
+            catch {}
+        }
+
+        /// <summary>
+        /// Raises the <see cref="ServerError"/> event.
+        /// </summary>
+        protected virtual void OnServerError(Exception error)
+        {
+            try {
+                ServerError?.Invoke(this, new EventArgs());
             }
             catch {}
         }
