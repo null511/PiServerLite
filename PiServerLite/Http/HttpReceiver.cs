@@ -208,11 +208,11 @@ namespace PiServerLite.Http
 
         private async Task<HttpHandlerResult> GetRouteResult(HttpListenerContext httpContext, string path)
         {
-            // Http Route Overrides
             var overrideRoute = RouteOverrides.Where(x => x.IsEnabled)
                 .FirstOrDefault(x => x.FilterFunc(path));
 
-            if (overrideRoute != null) {
+            // Http Route Overrides with Content
+            if (overrideRoute != null && overrideRoute.IncludesContent) {
                 if (overrideRoute.IsSecure && Context.SecurityMgr != null) {
                     if (!Context.SecurityMgr.Authorize(httpContext.Request)) {
                         return Context.SecurityMgr.OnUnauthorized(httpContext, Context)
@@ -242,6 +242,23 @@ namespace PiServerLite.Http
 
                 var localPath = path.Substring(contentRoute.UrlPath.Length);
                 return ProcessContent(httpContext, localPath, contentRoute);
+            }
+
+            // Http Route Overrides without Content
+            if (overrideRoute != null) {
+                if (overrideRoute.IsSecure && Context.SecurityMgr != null) {
+                    if (!Context.SecurityMgr.Authorize(httpContext.Request)) {
+                        return Context.SecurityMgr.OnUnauthorized(httpContext, Context)
+                            ?? HttpHandlerResult.Unauthorized(Context);
+                    }
+                }
+
+                try {
+                    return await overrideRoute.ExecuteEvent?.Invoke(httpContext, Context);
+                }
+                catch (Exception error) {
+                    return HttpHandlerResult.Exception(Context, error);
+                }
             }
 
             // Http Route

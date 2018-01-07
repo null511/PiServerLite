@@ -19,6 +19,8 @@ namespace PiServerLite.Http.Routes
         /// </summary>
         public bool IsSecure {get; set;}
 
+        public bool IncludesContent {get; set;}
+
         /// <summary>
         /// Gets or Sets the function used to filter paths which this
         /// route should override.
