@@ -1,8 +1,8 @@
 ﻿using System.Reflection;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyVersion("0.0.14")]
-[assembly: AssemblyFileVersion("0.0.14")]
+[assembly: AssemblyVersion("0.1.1")]
+[assembly: AssemblyFileVersion("0.1.1")]
 [assembly: AssemblyTitle("PiServerLite")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]

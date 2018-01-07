@@ -3,6 +3,7 @@ using PiServerLite.Http.Handlers;
 using PiServerLite.Http.Routes;
 using PiServerLite.Http.Security;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -46,6 +47,11 @@ namespace PiServerLite.Http
         /// </summary>
         public HttpReceiverContext Context {get;}
 
+        /// <summary>
+        /// Collection of routes that overrides <see cref="Routes"/>
+        /// using filters.
+        /// </summary>
+        public List<HttpRouteOverride> RouteOverrides {get;}
 
         /// <summary>
         /// Creates an instance of <see cref="HttpReceiver"/> with no attached prefixes.
@@ -57,6 +63,7 @@ namespace PiServerLite.Http
 
             Listener = new HttpListener();
             Routes = new HttpRouteCollection();
+            RouteOverrides = new List<HttpRouteOverride>();
         }
 
         /// <summary>
@@ -123,6 +130,7 @@ namespace PiServerLite.Http
         {
             HttpListenerContext httpContext;
             try {
+                if (!Listener.IsListening) return;
                 httpContext = Listener.EndGetContext(result);
             }
             catch (ObjectDisposedException) {
@@ -157,12 +165,10 @@ namespace PiServerLite.Http
 
         private async Task RouteRequest(HttpListenerContext httpContext)
         {
-            if (Context.Https == HttpsStates.Forced) {
-                // Auto-Redirect HTTP to HTTPS
-                if (!string.Equals("https", httpContext.Request.Url.Scheme, StringComparison.OrdinalIgnoreCase)) {
-                    RedirectToSecure(httpContext);
-                    return;
-                }
+            // Auto-Redirect HTTP to HTTPS if 'HttpsState' is 'Forced'.
+            if (Context.Https == HttpsStates.Forced && !string.Equals("https", httpContext.Request.Url.Scheme, StringComparison.OrdinalIgnoreCase)) {
+                RedirectToSecure(httpContext);
+                return;
             }
 
             var path = httpContext.Request.Url.AbsolutePath.TrimEnd('/');
@@ -202,6 +208,26 @@ namespace PiServerLite.Http
 
         private async Task<HttpHandlerResult> GetRouteResult(HttpListenerContext httpContext, string path)
         {
+            // Http Route Overrides
+            var overrideRoute = RouteOverrides.Where(x => x.IsEnabled)
+                .FirstOrDefault(x => x.FilterFunc(path));
+
+            if (overrideRoute != null) {
+                if (overrideRoute.IsSecure && Context.SecurityMgr != null) {
+                    if (!Context.SecurityMgr.Authorize(httpContext.Request)) {
+                        return Context.SecurityMgr.OnUnauthorized(httpContext, Context)
+                            ?? HttpHandlerResult.Unauthorized(Context);
+                    }
+                }
+
+                try {
+                    return await overrideRoute.ExecuteEvent?.Invoke(httpContext, Context);
+                }
+                catch (Exception error) {
+                    return HttpHandlerResult.Exception(Context, error);
+                }
+            }
+
             // Content Directories
             var contentRoute = Context.ContentDirectories
                 .FirstOrDefault(x => path.StartsWith(x.UrlPath));

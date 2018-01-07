@@ -42,7 +42,7 @@
     <Compile Include="Html\BlockResult.cs" />
     <Compile Include="Html\Blocks\EachBlock.cs" />
     <Compile Include="Html\Blocks\ConditionalBlock.cs" />
-    <Compile Include="Html\NetPath.cs" />
+    <Compile Include="Extensions\NetPath.cs" />
     <Compile Include="Html\TagNotFoundBehavior.cs" />
     <Compile Include="Html\TagNotFoundEventArgs.cs" />
     <Compile Include="Html\TruthyEngine.cs" />
@@ -57,6 +57,7 @@
     <Compile Include="Http\Routes\HttpRouteCollection.cs" />
     <Compile Include="Http\Handlers\IHttpHandler.cs" />
     <Compile Include="Http\Routes\HttpRouteDescription.cs" />
+    <Compile Include="Http\Routes\HttpRouteOverride.cs" />
     <Compile Include="Http\Security\HttpsStates.cs" />
     <Compile Include="Http\Security\ISecurityManager.cs" />
     <Compile Include="Http\Handlers\RequestAs.cs" />

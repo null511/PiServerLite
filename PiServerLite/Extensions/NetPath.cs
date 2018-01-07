@@ -1,9 +1,15 @@
 ﻿using System.Text;
 
-namespace PiServerLite.Html
+namespace PiServerLite.Extensions
 {
-    internal static class NetPath
+    /// <summary>
+    /// Utility class for modifying network paths.
+    /// </summary>
+    public static class NetPath
     {
+        /// <summary>
+        /// Combines a series of relative paths.
+        /// </summary>
         public static string Combine(params string[] paths)
         {
             var result = new StringBuilder();
