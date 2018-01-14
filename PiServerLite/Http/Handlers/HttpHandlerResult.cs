@@ -1,6 +1,7 @@
 ﻿using PiServerLite.Html;
 using PiServerLite.Http.Content;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -25,11 +26,14 @@ namespace PiServerLite.Http.Handlers
         public bool SendChunked {get; set;}
 
         public MimeTypeDictionary MimeTypes {get; set;}
+        public Dictionary<string, string> Headers {get; set;}
 
 
         public HttpHandlerResult(HttpReceiverContext context)
         {
             this.context = context;
+
+            Headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
 
         public void Dispose()
@@ -48,6 +52,12 @@ namespace PiServerLite.Http.Handlers
         public HttpHandlerResult SetContentType(string contentType)
         {
             ContentType = contentType;
+            return this;
+        }
+
+        public HttpHandlerResult SetHeader(string name, string value)
+        {
+            Headers[name] = value;
             return this;
         }
 
@@ -94,6 +104,9 @@ namespace PiServerLite.Http.Handlers
             context.Response.ContentType = ContentType;
             context.Response.SendChunked = SendChunked;
 
+            foreach (var headerKey in Headers.Keys)
+                context.Response.Headers[headerKey] = Headers[headerKey];
+
             if (!SendChunked)
                 context.Response.ContentLength64 = ContentLength;
 
@@ -132,6 +145,9 @@ namespace PiServerLite.Http.Handlers
             context.Response.ContentType = ContentType;
             context.Response.SendChunked = SendChunked;
 
+            foreach (var headerKey in Headers.Keys)
+                context.Response.Headers[headerKey] = Headers[headerKey];
+
             if (!SendChunked)
                 context.Response.ContentLength64 = ContentLength;
 
@@ -146,6 +162,14 @@ namespace PiServerLite.Http.Handlers
                 await streamContent.CopyToAsync(context.Response.OutputStream);
                 await context.Response.OutputStream.FlushAsync();
             }
+        }
+
+        public static HttpHandlerResult Status(HttpReceiverContext context, HttpStatusCode statusCode)
+        {
+            return new HttpHandlerResult(context) {
+                StatusCode = (int)statusCode,
+                StatusDescription = statusCode.ToString(),
+            };
         }
 
         public static HttpHandlerResult Ok(HttpReceiverContext context)

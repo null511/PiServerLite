@@ -39,6 +39,7 @@
     <Reference Include="System.Net.Http" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Extensions\DateTimeExtensions.cs" />
     <Compile Include="Html\BlockResult.cs" />
     <Compile Include="Html\Blocks\EachBlock.cs" />
     <Compile Include="Html\Blocks\ConditionalBlock.cs" />

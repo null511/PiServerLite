@@ -1,4 +1,5 @@
-﻿using PiServerLite.Http.Content;
+﻿using PiServerLite.Extensions;
+using PiServerLite.Http.Content;
 using PiServerLite.Http.Handlers;
 using PiServerLite.Http.Routes;
 using PiServerLite.Http.Security;
@@ -302,12 +303,28 @@ namespace PiServerLite.Http
                 return HttpHandlerResult.NotFound(Context)
                     .SetText($"Requested file is outisde of the content directory! [{fullLocalFilename}]");
 
+            var localFile = new FileInfo(fullLocalFilename);
+
             // Ensure file exists
-            if (!File.Exists(fullLocalFilename))
+            if (!localFile.Exists)
                 return HttpHandlerResult.NotFound(Context)
                     .SetText($"File not found! [{fullLocalFilename}]");
 
-            return HttpHandlerResult.File(Context, fullLocalFilename);
+            var ifModifiedSince = context.Request.Headers.Get("If-Modified-Since");
+            if (!string.IsNullOrEmpty(ifModifiedSince)) {
+                if (DateTime.TryParse(ifModifiedSince, out var ifModifiedSinceValue)) {
+                    //ifModifiedSinceValue = ifModifiedSinceValue.ToLocalTime();
+
+                    //var lastWriteUniversal = localFile.LastWriteTime.ToUniversalTime();
+
+                    var x1 = localFile.LastWriteTime.TrimMilliseconds();
+                    if (x1 <= ifModifiedSinceValue)
+                        return HttpHandlerResult.Status(Context, HttpStatusCode.NotModified);
+                }
+            }
+
+            return HttpHandlerResult.File(Context, fullLocalFilename)
+                .SetHeader("Last-Modified", localFile.LastWriteTimeUtc.ToString("r"));
         }
 
         /// <summary>
