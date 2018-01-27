@@ -1,14 +1,14 @@
 ﻿using System.Reflection;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyVersion("0.1.2")]
-[assembly: AssemblyFileVersion("0.1.2")]
+[assembly: AssemblyVersion("0.1.4")]
+[assembly: AssemblyFileVersion("0.1.4")]
 [assembly: AssemblyTitle("PiServerLite")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("A very lightweight HTTP server for the Raspberry Pi using C#.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Joshua Miller")]
 [assembly: AssemblyProduct("PiServer Lite")]
-[assembly: AssemblyCopyright("Copyright © Joshua Miller 2017")]
+[assembly: AssemblyCopyright("Copyright © Joshua Miller 201")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]

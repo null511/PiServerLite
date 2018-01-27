@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace PiServerLite.Html.Blocks
 {
@@ -13,7 +12,7 @@ namespace PiServerLite.Html.Blocks
             this.Engine = engine;
         }
 
-        public void Process(string text, string tag, IDictionary<string, object> valueCollection, BlockResult result, ref int read_pos)
+        public void Process(string text, string tag, VariableCollection valueCollection, BlockResult result, ref int read_pos)
         {
             var blockEndStart = text.IndexOf("{{#endif}}", read_pos, StringComparison.OrdinalIgnoreCase);
             if (blockEndStart < 0) return;
@@ -42,8 +41,7 @@ namespace PiServerLite.Html.Blocks
                 var invert = condition.StartsWith("!");
                 if (invert) condition = condition.Substring(1);
 
-                object item_value;
-                if (valueCollection != null && Engine.GetVariableValue(valueCollection, condition, out item_value))
+                if (valueCollection != null && valueCollection.TryGetValue(condition, out var item_value))
                     conditionResult = TruthyEngine.GetValue(item_value);
 
                 if (invert)

@@ -310,17 +310,11 @@ namespace PiServerLite.Http
                 return HttpHandlerResult.NotFound(Context)
                     .SetText($"File not found! [{fullLocalFilename}]");
 
+            // HTTP Caching - Last-Modified
             var ifModifiedSince = context.Request.Headers.Get("If-Modified-Since");
-            if (!string.IsNullOrEmpty(ifModifiedSince)) {
-                if (DateTime.TryParse(ifModifiedSince, out var ifModifiedSinceValue)) {
-                    //ifModifiedSinceValue = ifModifiedSinceValue.ToLocalTime();
-
-                    //var lastWriteUniversal = localFile.LastWriteTime.ToUniversalTime();
-
-                    var x1 = localFile.LastWriteTime.TrimMilliseconds();
-                    if (x1 <= ifModifiedSinceValue)
-                        return HttpHandlerResult.Status(Context, HttpStatusCode.NotModified);
-                }
+            if (DateTime.TryParse(ifModifiedSince, out var ifModifiedSinceValue)) {
+                if (localFile.LastWriteTime.TrimMilliseconds() <= ifModifiedSinceValue)
+                    return HttpHandlerResult.Status(Context, HttpStatusCode.NotModified);
             }
 
             return HttpHandlerResult.File(Context, fullLocalFilename)

@@ -48,6 +48,7 @@
     <Compile Include="Html\TagNotFoundEventArgs.cs" />
     <Compile Include="Html\TruthyEngine.cs" />
     <Compile Include="Html\UrlUtility.cs" />
+    <Compile Include="Html\VariableCollection.cs" />
     <Compile Include="Http\HttpReceiverContext.cs" />
     <Compile Include="Http\Content\ContentDirectory.cs" />
     <Compile Include="Http\Handlers\HttpHandlerAsync.cs" />

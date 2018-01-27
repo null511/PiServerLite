@@ -11,8 +11,7 @@ namespace PiServerLite.Extensions
         {
             if (parameters == null) return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 
-            var dictionary = parameters as IDictionary<string, object>;
-            if (dictionary != null) return dictionary;
+            if (parameters is IDictionary<string, object> dictionary) return dictionary;
 
             return parameters.GetType()
                 .GetProperties(BindingFlags.Instance | BindingFlags.Public)

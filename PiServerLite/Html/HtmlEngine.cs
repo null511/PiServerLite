@@ -33,7 +33,7 @@ namespace PiServerLite.Html
 
         public string Process(string text, object param)
         {
-            var valueCollection = ObjectExtensions.ToDictionary(param);
+            var valueCollection = new VariableCollection(param);
 
             // Process root text block
             var result = ProcessBlock(text, valueCollection);
@@ -43,8 +43,7 @@ namespace PiServerLite.Html
 
             // Apply master-view chain
             while (!string.IsNullOrEmpty(result.MasterView)) {
-                string masterText;
-                if (!views.TryFind(result.MasterView, out masterText))
+                if (!views.TryFind(result.MasterView, out var masterText))
                     throw new ApplicationException($"Master view '{result.MasterView}' was not found!");
 
                 valueCollection["master-content"] = result.Text;
@@ -60,7 +59,7 @@ namespace PiServerLite.Html
             return result.Text;
         }
 
-        public BlockResult ProcessBlock(string text, IDictionary<string, object> valueCollection)
+        public BlockResult ProcessBlock(string text, VariableCollection valueCollection)
         {
             var result = new BlockResult();
             if (string.IsNullOrEmpty(text))
@@ -71,9 +70,7 @@ namespace PiServerLite.Html
 
             var read_pos = 0;
             while (read_pos < text.Length) {
-                string tag;
-                int tagStart, tagEnd;
-                if (!FindAnyTag(text, "{{", "}}", read_pos, out tagStart, out tagEnd, out tag)) break;
+                if (!FindAnyTag(text, "{{", "}}", read_pos, out var tagStart, out var tagEnd, out var tag)) break;
 
                 result.Builder.Append(text, read_pos, tagStart - read_pos);
                 read_pos = tagEnd;
@@ -102,8 +99,7 @@ namespace PiServerLite.Html
                 }
                 else {
                     // Process Variable Tag
-                    object item_value;
-                    if (valueCollection != null && GetVariableValue(valueCollection, tag, out item_value)) {
+                    if (valueCollection != null && valueCollection.TryGetValue(tag, out var item_value)) {
                         result.Builder.Append(item_value);
                         continue;
                     }
@@ -142,7 +138,7 @@ namespace PiServerLite.Html
             result.Builder.Append(url);
         }
 
-        private void ProcessScriptBlock(string text, IDictionary<string, object> valueCollection, BlockResult result, ref int readPos)
+        private void ProcessScriptBlock(string text, VariableCollection valueCollection, BlockResult result, ref int readPos)
         {
             var endTag = "{{#endscript}}";
             var blockEndStart = text.IndexOf(endTag, readPos, StringComparison.OrdinalIgnoreCase);
@@ -155,7 +151,7 @@ namespace PiServerLite.Html
             result.Scripts.Add(blockResult.Text);
         }
 
-        private void ProcessStyleBlock(string text, IDictionary<string, object> valueCollection, BlockResult result, ref int readPos)
+        private void ProcessStyleBlock(string text, VariableCollection valueCollection, BlockResult result, ref int readPos)
         {
             var endTag = "{{#endstyle}}";
             var blockEndStart = text.IndexOf(endTag, readPos, StringComparison.OrdinalIgnoreCase);
@@ -166,39 +162,6 @@ namespace PiServerLite.Html
 
             var blockResult = ProcessBlock(blockText, valueCollection);
             result.Styles.Add(blockResult.Text);
-        }
-
-        public virtual bool GetVariableValue(IDictionary<string, object> valueCollection, string key, out object value)
-        {
-            var keySegments = key.Split('.');
-            var rootSegment = keySegments[0];
-
-            if (!valueCollection.TryGetValue(rootSegment, out value))
-                return false;
-
-            for (var i = 1; i < keySegments.Length; i++) {
-                if (value == null) return false;
-
-                var segment = keySegments[i];
-
-                var xType = value.GetType();
-
-                var xField = xType.GetField(segment);
-                if (xField != null) {
-                    value = xField.GetValue(value);
-                    continue;
-                }
-
-                var xProperty = xType.GetProperty(segment);
-                if (xProperty != null) {
-                    value = xProperty.GetValue(value);
-                    continue;
-                }
-
-                return false;
-            }
-
-            return true;
         }
 
         protected virtual string OnVariableNotFound(string tag, string sourceText)
@@ -221,7 +184,7 @@ namespace PiServerLite.Html
             }
         }
 
-        private static bool FindAnyTag(string text, string tagStartChars, string tagStopChars, int startPos, out int tagStartPos, out int tagEndPos, out string tag)
+        internal static bool FindAnyTag(string text, string tagStartChars, string tagStopChars, int startPos, out int tagStartPos, out int tagEndPos, out string tag)
         {
             var tagStart = text.IndexOf(tagStartChars, startPos, StringComparison.Ordinal);
             if (tagStart < 0) {
@@ -249,9 +212,7 @@ namespace PiServerLite.Html
 
             var read_pos = 0;
             while (read_pos < text.Length) {
-                string tag;
-                int tagStart, tagEnd;
-                if (!FindAnyTag(text, "<!--", "-->", read_pos, out tagStart, out tagEnd, out tag)) break;
+                if (!FindAnyTag(text, "<!--", "-->", read_pos, out var tagStart, out var tagEnd, out var tag)) break;
 
                 result.Append(text, read_pos, tagStart - read_pos);
                 read_pos = tagEnd;
