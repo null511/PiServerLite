@@ -5,6 +5,9 @@ using System.Web;
 
 namespace PiServerLite.Html
 {
+    /// <summary>
+    /// Utility class for generating full URLs using a root path.
+    /// </summary>
     public class UrlUtility
     {
         public string RootPath {get;}
@@ -17,6 +20,13 @@ namespace PiServerLite.Html
             this.RootPath = context.ListenerPath;
         }
 
+        /// <summary>
+        /// Creates a full URL by joining <see cref="RootPath"/> and
+        /// <paramref name="path"/>, with optional <paramref name="queryArgs"/>.
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="queryArgs"></param>
+        /// <returns></returns>
         public string GetRelative(string path, object queryArgs = null)
         {
             var url = NetPath.Combine(RootPath, path);

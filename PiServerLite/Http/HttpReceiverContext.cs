@@ -1,6 +1,5 @@
 ﻿using PiServerLite.Http.Content;
 using PiServerLite.Http.Security;
-using System;
 using System.Collections.Generic;
 
 namespace PiServerLite.Http
@@ -12,11 +11,9 @@ namespace PiServerLite.Http
     public class HttpReceiverContext
     {
         /// <summary>
-        /// The full external URI used to access the receiver.
-        /// ie: 'http://localhost:8080/piServer/'
+        /// The relative path of the URI used to access the receiver.
+        /// ie: '/piServer/'
         /// </summary>
-        //public Uri ListenUri {get; set;}
-
         public string ListenerPath {get; set;}
 
         /// <summary>
@@ -48,11 +45,6 @@ namespace PiServerLite.Http
         public HttpsStates Https {get; set;}
 
         /// <summary>
-        /// Port to use for HTTP communication. Default is 80.
-        /// </summary>
-        public int HttpPort {get; set;}
-
-        /// <summary>
         /// Port to use for HTTPS communication. Default is 443.
         /// </summary>
         public int HttpsPort {get; set;}
@@ -64,7 +56,6 @@ namespace PiServerLite.Http
         /// </summary>
         public HttpReceiverContext()
         {
-            HttpPort = 80;
             HttpsPort = 443;
 
             Views = new ViewCollection();

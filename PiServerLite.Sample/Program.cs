@@ -13,8 +13,7 @@ namespace PiServerLite.Sample
         static int Main()
         {
             var context = new HttpReceiverContext {
-                ListenerPath = "/piServerLite",
-                HttpPort = 8080,
+                ListenerPath = "/piServer",
             };
 
             context.ContentDirectories.Add(new ContentDirectory {
@@ -50,7 +49,8 @@ namespace PiServerLite.Sample
             Console.ResetColor();
             Console.WriteLine("Starting Http Server...");
 
-            receiver = new HttpReceiver(context, "http://+:8080/piServerLite/");
+            receiver = new HttpReceiver(context);
+            receiver.AddPrefix("http://+:80/piServer/");
 
             try {
                 receiver.Routes.Scan(Assembly.GetExecutingAssembly());

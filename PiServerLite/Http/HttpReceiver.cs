@@ -68,20 +68,6 @@ namespace PiServerLite.Http
         }
 
         /// <summary>
-        /// Creates an instance of <see cref="HttpReceiver"/> with the given prefix.
-        /// </summary>
-        /// <param name="context"></param>
-        /// <param name="prefix">
-        /// A string that identifies the URI information that is
-        /// compared in incoming requests. The prefix must be
-        /// terminated with a forward slash ("/").
-        /// </param>
-        public HttpReceiver(HttpReceiverContext context, string prefix) : this(context)
-        {
-            Listener.Prefixes.Add(prefix);
-        }
-
-        /// <summary>
         /// Stops receiving incoming requests and
         /// shuts down the <see cref="HttpListener"/>.
         /// </summary>
