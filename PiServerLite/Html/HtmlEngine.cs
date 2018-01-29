@@ -44,7 +44,7 @@ namespace PiServerLite.Html
             // Apply master-view chain
             while (!string.IsNullOrEmpty(result.MasterView)) {
                 if (!views.TryFind(result.MasterView, out var masterText))
-                    throw new ApplicationException($"Master view '{result.MasterView}' was not found!");
+                    throw new RenderingException($"Master view '{result.MasterView}' was not found!");
 
                 valueCollection["master-content"] = result.Text;
                 valueCollection["script-content"] = string.Join("\r\n", scriptList);
@@ -122,7 +122,7 @@ namespace PiServerLite.Html
         private void ProcessMasterTag(string tag, BlockResult result)
         {
             var valueStart = tag.IndexOf(' ');
-            if (valueStart < 0) return;
+            if (valueStart < 0) throw new RenderingException("Master view path is undefined!");
 
             result.MasterView = tag.Substring(valueStart+1).Trim();
         }
@@ -130,7 +130,7 @@ namespace PiServerLite.Html
         private void ProcessUrlTag(string tag, BlockResult result)
         {
             var valueStart = tag.IndexOf(' ');
-            if (valueStart < 0) return;
+            if (valueStart < 0) throw new RenderingException("Url path is undefined!");
 
             var url = tag.Substring(valueStart+1).Trim();
             url = NetPath.Combine(UrlRoot, url);
@@ -142,7 +142,7 @@ namespace PiServerLite.Html
         {
             var endTag = "{{#endscript}}";
             var blockEndStart = text.IndexOf(endTag, readPos, StringComparison.OrdinalIgnoreCase);
-            if (blockEndStart < 0) return;
+            if (blockEndStart < 0) throw new RenderingException("No #EndScript tag was found!");
 
             var blockText = text.Substring(readPos, blockEndStart - readPos);
             readPos = blockEndStart + endTag.Length;
@@ -155,7 +155,7 @@ namespace PiServerLite.Html
         {
             var endTag = "{{#endstyle}}";
             var blockEndStart = text.IndexOf(endTag, readPos, StringComparison.OrdinalIgnoreCase);
-            if (blockEndStart < 0) return;
+            if (blockEndStart < 0) throw new RenderingException("No #EndStyle tag was found!");
 
             var blockText = text.Substring(readPos, blockEndStart - readPos);
             readPos = blockEndStart + endTag.Length;

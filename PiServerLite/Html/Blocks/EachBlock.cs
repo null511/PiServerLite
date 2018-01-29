@@ -16,13 +16,13 @@ namespace PiServerLite.Html.Blocks
         public void Process(string text, string tag, VariableCollection valueCollection, BlockResult result, ref int readPos)
         {
             var _nesting = 0;
-            var blockEnd_Start = 0;
-            var blockEnd_End = 0;
+            var blockEnd_Start = -1;
+            var blockEnd_End = -1;
 
             var _pos = readPos;
             while (true) {
                 var _found = HtmlEngine.FindAnyTag(text, "{{", "}}", _pos, out var _start, out var _end, out var _tag);
-                if (!_found) return;
+                if (!_found) throw new RenderingException("No #EndEach tag found!");
 
                 _pos = _end;
 
@@ -47,20 +47,21 @@ namespace PiServerLite.Html.Blocks
             readPos = blockEnd_End;
 
             var statementStart = tag.IndexOf(' ');
-            if (statementStart < 0) return;
+            if (statementStart < 0) throw new RenderingException("#Each tag is missing statement!");
 
             var statement = tag.Substring(statementStart + 1).Trim();
 
             var statementVarSplit = statement.LastIndexOf('.');
-            if (statementVarSplit < 0) return;
+            if (statementVarSplit < 0) throw new RenderingException("#Each tag statement is missing item alias!");
 
             var objName = statement.Substring(0, statementVarSplit);
             var varName = statement.Substring(statementVarSplit + 1);
 
-            if (!valueCollection.TryGetValue(objName, out var objValue)) return;
+            if (!valueCollection.TryGetValue(objName, out var objValue))
+                throw new RenderingException($"Variable '{objName}' not found!");
 
-            // Exit if not a collection
-            if (!(objValue is IEnumerable<object> collection)) return;
+            if (!(objValue is IEnumerable<object> collection))
+                throw new RenderingException($"Variable '{objName}' is not a collection!");
 
             foreach (var obj in collection) {
                 var blockValues = new VariableCollection(valueCollection) {
