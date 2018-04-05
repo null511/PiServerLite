@@ -61,16 +61,16 @@ namespace PiServerLite.Http.Handlers
             return this;
         }
 
+        public HttpHandlerResult SetChunked(bool value)
+        {
+            SendChunked = value;
+            return this;
+        }
+
         public HttpHandlerResult SetContent(Stream stream)
         {
             ContentLength = stream.Length;
             streamContent = stream;
-            return this;
-        }
-
-        public HttpHandlerResult SetChunked(bool value)
-        {
-            SendChunked = value;
             return this;
         }
 
@@ -155,12 +155,12 @@ namespace PiServerLite.Http.Handlers
                 await contentActionAsync.Invoke(context.Response.OutputStream, token);
             }
             else if (contentAction != null) {
-                await Task.Run(() => contentAction.Invoke(context.Response.OutputStream));
+                await Task.Run(() => contentAction.Invoke(context.Response.OutputStream), token);
             }
             else if (streamContent != null) {
                 streamContent.Seek(0, SeekOrigin.Begin);
                 await streamContent.CopyToAsync(context.Response.OutputStream);
-                await context.Response.OutputStream.FlushAsync();
+                await context.Response.OutputStream.FlushAsync(token);
             }
         }
 
@@ -274,8 +274,7 @@ namespace PiServerLite.Http.Handlers
         /// <param name="param">Optional view-model object.</param>
         public static HttpHandlerResult View(HttpReceiverContext context, string name, object param = null)
         {
-            string content;
-            if (!context.Views.TryFind(name, out content))
+            if (!context.Views.TryFind(name, out var content))
                 throw new ApplicationException($"View '{name}' was not found!");
 
             var engine = new HtmlEngine(context.Views) {

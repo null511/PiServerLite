@@ -24,29 +24,26 @@ namespace PiServerLite.Html
         /// Creates a full URL by joining <see cref="RootPath"/> and
         /// <paramref name="path"/>, with optional <paramref name="queryArgs"/>.
         /// </summary>
-        /// <param name="path"></param>
-        /// <param name="queryArgs"></param>
-        /// <returns></returns>
         public string GetRelative(string path, object queryArgs = null)
         {
             var url = NetPath.Combine(RootPath, path);
 
-            if (queryArgs != null) {
-                var argList = ObjectExtensions.ToDictionary(queryArgs);
+            if (queryArgs == null) return url;
 
-                var builder = new StringBuilder();
-                foreach (var arg in argList) {
-                    var eKey = HttpUtility.UrlEncode(arg.Key);
-                    var eValue = HttpUtility.UrlEncode(arg.Value?.ToString() ?? string.Empty);
+            var argList = ObjectExtensions.ToDictionary(queryArgs);
 
-                    builder.Append(builder.Length > 0 ? "&" : "?");
-                    builder.Append(eKey);
-                    builder.Append('=');
-                    builder.Append(eValue);
-                }
+            var builder = new StringBuilder();
+            foreach (var arg in argList) {
+                var eKey = HttpUtility.UrlEncode(arg.Key);
+                var eValue = HttpUtility.UrlEncode(arg.Value?.ToString() ?? string.Empty);
 
-                url += builder.ToString();
+                builder.Append(builder.Length > 0 ? "&" : "?");
+                builder.Append(eKey);
+                builder.Append('=');
+                builder.Append(eValue);
             }
+
+            url += builder.ToString();
 
             return url;
         }

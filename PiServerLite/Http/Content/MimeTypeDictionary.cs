@@ -76,11 +76,8 @@ namespace PiServerLite.Http.Content
 
         public string Get(string extension)
         {
-            string type;
-            if (base.TryGetValue(extension, out type))
-                return type;
-
-            return "application/octet-stream";
+            return TryGetValue(extension, out var type)
+                ? type : "application/octet-stream";
         }
     }
 }

@@ -43,8 +43,7 @@ namespace PiServerLite.Http.Routes
         {
             var method = handlerObj.HttpContext.Request.HttpMethod.ToUpper();
 
-            var handlerAsync = handlerObj as HttpHandlerAsync;
-            if (handlerAsync != null) {
+            if (handlerObj is HttpHandlerAsync handlerAsync) {
                 switch (method) {
                     case "GET":
                         return handlerAsync.GetAsync().GetAwaiter().GetResult();
@@ -59,8 +58,7 @@ namespace PiServerLite.Http.Routes
                 }
             }
 
-            var handler = handlerObj as HttpHandler;
-            if (handler != null) {
+            if (handlerObj is HttpHandler handler) {
                 switch (method) {
                     case "GET":
                         return handler.Get();
@@ -82,8 +80,7 @@ namespace PiServerLite.Http.Routes
         {
             var method = handlerObj.HttpContext.Request.HttpMethod.ToUpper();
 
-            var handlerAsync = handlerObj as HttpHandlerAsync;
-            if (handlerAsync != null) {
+            if (handlerObj is HttpHandlerAsync handlerAsync) {
                 switch (method) {
                     case "GET":
                         return await handlerAsync.GetAsync();
@@ -98,8 +95,7 @@ namespace PiServerLite.Http.Routes
                 }
             }
 
-            var handler = handlerObj as HttpHandler;
-            if (handler != null) {
+            if (handlerObj is HttpHandler handler) {
                 return await Task.Run(() => {
                     switch (method) {
                         case "GET":
@@ -126,8 +122,8 @@ namespace PiServerLite.Http.Routes
 
         internal IHttpHandler GetHandler(HttpRouteDescription routeDescription, HttpListenerContext httpContext, HttpReceiverContext context)
         {
-            var handler = Activator.CreateInstance(routeDescription.ClassType) as IHttpHandler;
-            if (handler == null) throw new ApplicationException($"Unable to construct HttpHandler implementation '{routeDescription.ClassType.Name}'!");
+            if (!(Activator.CreateInstance(routeDescription.ClassType) is IHttpHandler handler))
+                throw new ApplicationException($"Unable to construct HttpHandler implementation '{routeDescription.ClassType.Name}'!");
 
             handler.HttpContext = httpContext;
             handler.Context = context;

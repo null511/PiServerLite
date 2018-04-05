@@ -14,9 +14,7 @@ namespace PiServerLite.Extensions
         {
             var result = new StringBuilder();
 
-            for (var i = 0; i < paths.Length; i++) {
-                var path = paths[i];
-
+            foreach (var path in paths) {
                 if (result.Length > 0) {
                     var lastChar = result[result.Length - 1];
 

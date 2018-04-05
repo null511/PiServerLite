@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 
-namespace PiServerLite.Http
+namespace PiServerLite
 {
     public class ViewCollection
     {
@@ -22,14 +22,12 @@ namespace PiServerLite.Http
             if (viewCacheList.TryGetValue(viewName, out content))
                 return true;
 
-            Func<string> getFunc;
-            if (viewList.TryGetValue(viewName, out getFunc)) {
+            if (viewList.TryGetValue(viewName, out var getFunc)) {
                 content = getFunc();
                 viewCacheList[viewName] = content;
                 return true;
             }
 
-            content = null;
             return false;
         }
 

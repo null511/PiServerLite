@@ -29,10 +29,9 @@ namespace PiServerLite.Html
             if (type == typeof(long))
                 return (long)value > 0;
 
-            var enumerableType = value as IEnumerable<object>;
-            if (enumerableType != null) return enumerableType.Any();
+            if (value is IEnumerable<object> enumerableType) return enumerableType.Any();
 
-            return value != null;
+            return true;
         }
 
         private static bool ParseStringValue(string stringValue)

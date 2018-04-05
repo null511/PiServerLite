@@ -160,7 +160,7 @@ namespace PiServerLite.Http
 
             var path = httpContext.Request.Url.AbsolutePath.TrimEnd('/');
 
-            Console.WriteLine($"Request received from '{httpContext.Request.RemoteEndPoint}' -> '{path}'.");
+            //Console.WriteLine($"Request received from '{httpContext.Request.RemoteEndPoint}' -> '{path}'.");
 
             var root = Context.ListenerPath.TrimEnd('/');
 
@@ -173,7 +173,7 @@ namespace PiServerLite.Http
             HttpHandlerResult result = null;
             var tokenSource = new CancellationTokenSource();
             try {
-                result = (await GetRouteResult(httpContext, path))
+                result = await GetRouteResult(httpContext, path)
                     ?? HttpHandlerResult.NotFound(Context)
                         .SetText($"No content found matching path '{path}'!");
 
@@ -249,8 +249,7 @@ namespace PiServerLite.Http
             }
 
             // Http Route
-            HttpRouteDescription routeDesc;
-            if (Routes.FindRoute(path, out routeDesc)) {
+            if (Routes.FindRoute(path, out var routeDesc)) {
                 if (routeDesc.IsSecure && Context.SecurityMgr != null) {
                     if (!Context.SecurityMgr.Authorize(httpContext.Request)) {
                         return Context.SecurityMgr.OnUnauthorized(httpContext, Context)

@@ -15,8 +15,8 @@ namespace PiServerLite.Html.Blocks
         public void Process(string text, string tag, VariableCollection valueCollection, BlockResult result, ref int read_pos)
         {
             var _nesting = 0;
-            var blockEnd_Start = -1;
-            var blockEnd_End = -1;
+            int blockEnd_Start;
+            int blockEnd_End;
 
             var _pos = read_pos;
             while (true) {

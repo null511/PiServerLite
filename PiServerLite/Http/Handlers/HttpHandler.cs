@@ -53,6 +53,15 @@ namespace PiServerLite.Http.Handlers
         }
 
         /// <summary>
+        /// Creates an empty HTTP response with the
+        /// specified <paramref name="statusCode"/>.
+        /// </summary>
+        public HttpHandlerResult Status(HttpStatusCode statusCode)
+        {
+            return HttpHandlerResult.Status(Context, statusCode);
+        }
+
+        /// <summary>
         /// Creates an empty HTTP '404 Not Found' response.
         /// </summary>
         public HttpHandlerResult NotFound()

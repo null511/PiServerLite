@@ -50,6 +50,11 @@ namespace PiServerLite.Http.Handlers
             return HttpHandlerResult.Ok(Context);
         }
 
+        public HttpHandlerResult Status(HttpStatusCode statusCode)
+        {
+            return HttpHandlerResult.Status(Context, statusCode);
+        }
+
         public HttpHandlerResult NotFound()
         {
             return HttpHandlerResult.NotFound(Context);
