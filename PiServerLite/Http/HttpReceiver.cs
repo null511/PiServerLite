@@ -91,7 +91,10 @@ namespace PiServerLite.Http
         /// </summary>
         public void Stop()
         {
-            Listener.Stop();
+            try {
+                Listener.Stop();
+            }
+            catch (ObjectDisposedException) {}
         }
 
         /// <summary>
@@ -160,8 +163,6 @@ namespace PiServerLite.Http
 
             var path = httpContext.Request.Url.AbsolutePath.TrimEnd('/');
 
-            //Console.WriteLine($"Request received from '{httpContext.Request.RemoteEndPoint}' -> '{path}'.");
-
             var root = Context.ListenerPath.TrimEnd('/');
 
             if (path.StartsWith(root))
@@ -208,7 +209,9 @@ namespace PiServerLite.Http
                 }
 
                 try {
-                    return await overrideRoute.ExecuteEvent?.Invoke(httpContext, Context);
+                    if (overrideRoute.ExecuteEvent == null) return null;
+
+                    return await overrideRoute.ExecuteEvent.Invoke(httpContext, Context);
                 }
                 catch (Exception error) {
                     return HttpHandlerResult.Exception(Context, error);
@@ -241,7 +244,9 @@ namespace PiServerLite.Http
                 }
 
                 try {
-                    return await overrideRoute.ExecuteEvent?.Invoke(httpContext, Context);
+                    if (overrideRoute.ExecuteEvent == null) return null;
+
+                    return await overrideRoute.ExecuteEvent.Invoke(httpContext, Context);
                 }
                 catch (Exception error) {
                     return HttpHandlerResult.Exception(Context, error);
