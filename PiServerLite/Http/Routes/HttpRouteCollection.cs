@@ -31,7 +31,10 @@ namespace PiServerLite.Http.Routes
                 var attrSecure = classType.GetCustomAttribute<SecureAttribute>();
 
                 foreach (var attr in attrList) {
-                    routeList[attr.Path] = new HttpRouteDescription {
+                    var _path = attr.Path.StartsWith("/")
+                        ? attr.Path.Substring(1) : attr.Path;
+
+                    routeList[_path] = new HttpRouteDescription {
                         ClassType = classType,
                         IsSecure = attrSecure != null,
                     };
@@ -117,7 +120,10 @@ namespace PiServerLite.Http.Routes
 
         internal bool FindRoute(string path, out HttpRouteDescription routeDescription)
         {
-            return routeList.TryGetValue(path, out routeDescription);
+            var _path = path.StartsWith("/")
+                ? path.Substring(1) : path;
+
+            return routeList.TryGetValue(_path, out routeDescription);
         }
 
         internal IHttpHandler GetHandler(HttpRouteDescription routeDescription, HttpListenerContext httpContext, HttpReceiverContext context)
