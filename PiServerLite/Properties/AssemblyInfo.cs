@@ -1,8 +1,8 @@
 ﻿using System.Reflection;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyVersion("0.1.10")]
-[assembly: AssemblyFileVersion("0.1.10")]
+[assembly: AssemblyVersion("0.1.11")]
+[assembly: AssemblyFileVersion("0.1.11")]
 [assembly: AssemblyTitle("PiServerLite")]
 [assembly: AssemblyDescription("A very lightweight HTTP server for the Raspberry Pi using C#.")]
 [assembly: AssemblyConfiguration("")]

@@ -61,6 +61,8 @@ namespace PiServerLite.Http.Content
                 {".shtml", "text/html"},
                 {".sit", "application/x-stuffit"},
                 {".swf", "application/x-shockwave-flash"},
+                {".svg", "image/svg+xml"},
+                {".svgz", "image/svg+xml"},
                 {".tcl", "application/x-tcl"},
                 {".tk", "application/x-tcl"},
                 {".txt", "text/plain"},
