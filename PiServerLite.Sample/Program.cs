@@ -48,9 +48,10 @@ namespace PiServerLite.Sample
         {
             Console.ResetColor();
             Console.WriteLine("Starting Http Server...");
+            Console.WriteLine("Listening at http://*/piServer");
 
             receiver = new HttpReceiver(context);
-            receiver.AddPrefix("http://+:80/piServer/");
+            receiver.AddPrefix("http://*:80/piServer/");
 
             try {
                 receiver.Routes.Scan(Assembly.GetExecutingAssembly());

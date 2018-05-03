@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -8,28 +7,25 @@ namespace PiServerLite
 {
     public class ViewCollection
     {
-        private readonly ConcurrentDictionary<string, string> viewCacheList;
+        private readonly ViewCache viewCache;
         private readonly Dictionary<string, Func<string>> viewList;
 
 
         public ViewCollection()
         {
-            viewCacheList = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            viewCache = new ViewCache();
             viewList = new Dictionary<string, Func<string>>(StringComparer.OrdinalIgnoreCase);
         }
 
         public bool TryFind(string viewName, out string content)
         {
-            if (viewCacheList.TryGetValue(viewName, out content))
-                return true;
-
-            if (viewList.TryGetValue(viewName, out var getFunc)) {
-                content = getFunc();
-                viewCacheList[viewName] = content;
-                return true;
+            if (!viewList.TryGetValue(viewName, out var getFunc)) {
+                content = null;
+                return false;
             }
 
-            return false;
+            content = getFunc();
+            return true;
         }
 
         public ViewCollection Add(string viewName, Func<string> getFunc)
@@ -40,7 +36,8 @@ namespace PiServerLite
 
         public ViewCollection AddFromExternal(string filename, string viewName = null)
         {
-            viewList[viewName ?? filename] = () => LoadFromExternal(filename);
+            var viewKey = viewName ?? filename;
+            viewList[viewKey] = () => LoadFromExternal(viewKey, filename);
             return this;
         }
 
@@ -57,7 +54,7 @@ namespace PiServerLite
                 if (!string.IsNullOrEmpty(prefix))
                     viewName = prefix+viewName;
 
-                viewList[viewName] = () => LoadFromExternal(filename);
+                viewList[viewName] = () => LoadFromExternal(viewName, filename);
             }
 
             return this;
@@ -71,7 +68,8 @@ namespace PiServerLite
         /// <param name="viewName">The unique key used to retrieve the view.</param>
         public ViewCollection AddFromAssembly(Assembly assembly, string path, string viewName = null)
         {
-            viewList[viewName ?? path] = () => LoadFromAssembly(assembly, path);
+            var viewKey = viewName ?? path;
+            viewList[viewKey] = () => LoadFromAssembly(viewKey, assembly, path);
             return this;
         }
 
@@ -93,38 +91,63 @@ namespace PiServerLite
 
                 var localName = resourceName.Substring(x);
 
-                viewList[localName] = () => LoadFromAssembly(assembly, resourceName);
+                viewList[localName] = () => LoadFromAssembly(localName, assembly, resourceName);
             }
 
             return this;
         }
 
-        private static string LoadFromExternal(string filename)
+        private string LoadFromExternal(string viewKey, string filename)
         {
+            if (viewCache.TryFind(viewKey, out var viewData))
+                return viewData;
+
             if (Path.DirectorySeparatorChar != '\\')
                 filename = filename.Replace("\\", Path.DirectorySeparatorChar.ToString());
 
             filename = Path.GetFullPath(filename);
+            var fileInfo = new FileInfo(filename);
 
-            if (!File.Exists(filename))
+            if (!fileInfo.Exists)
                 throw new ApplicationException($"External View '{filename}' could not be found!");
+
+            var lastWrite = fileInfo.LastWriteTimeUtc;
+
+            var view = new CachedView {
+                IsExpiredFunc = () => File.GetLastWriteTimeUtc(filename) != lastWrite,
+            };
 
             using (var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read))
             using (var reader = new StreamReader(stream)) {
-                return reader.ReadToEnd();
+                view.Data = reader.ReadToEnd();
             }
+
+            viewCache.Update(viewKey, view);
+
+            return view.Data;
         }
 
-        private static string LoadFromAssembly(Assembly assembly, string path)
+        private string LoadFromAssembly(string viewKey, Assembly assembly, string path)
         {
+            if (viewCache.TryFind(viewKey, out var viewData))
+                return viewData;
+
+            var view = new CachedView {
+                IsExpiredFunc = () => false,
+            };
+
             using (var stream = assembly.GetManifestResourceStream(path)) {
                 if (stream == null)
                     throw new ApplicationException($"Assembly View '{path}' could not be found!");
 
                 using (var reader = new StreamReader(stream)) {
-                    return reader.ReadToEnd();
+                    view.Data = reader.ReadToEnd();
                 }
             }
+
+            viewCache.Update(viewKey, view);
+
+            return view.Data;
         }
     }
 }
