@@ -57,8 +57,10 @@ namespace PiServerLite.Html.Blocks
             var objName = statement.Substring(0, statementVarSplit);
             var varName = statement.Substring(statementVarSplit + 1);
 
-            if (!valueCollection.TryGetValue(objName, out var objValue))
+            if (!valueCollection.TryGetFormattedValue(objName, out var objValue))
                 throw new RenderingException($"Variable '{objName}' not found!");
+
+            if (objValue == null) return;
 
             if (!(objValue is IEnumerable<object> collection))
                 throw new RenderingException($"Variable '{objName}' is not a collection!");

@@ -1,6 +1,7 @@
 ﻿using PiServerLite.Extensions;
 using System;
 using System.Collections.Generic;
+using System.Web;
 
 namespace PiServerLite.Html
 {
@@ -27,6 +28,34 @@ namespace PiServerLite.Html
         public VariableCollection(object parameters)
         {
             collection = ObjectExtensions.ToDictionary(parameters);
+        }
+
+        public virtual bool TryGetFormattedValue(string key, out object value)
+        {
+            var isQueryFormatted = false;
+
+            if (key.StartsWith("&")) {
+                isQueryFormatted = true;
+                key = key.Substring(1);
+            }
+
+            if (!TryGetValue(key, out var _value)) {
+                value = null;
+                return false;
+            }
+
+            if (_value == null) {
+                value = null;
+                return true;
+            }
+
+            if (isQueryFormatted) {
+                value = HttpUtility.UrlEncode(_value.ToString());
+                return true;
+            }
+
+            value = _value;
+            return true;
         }
 
         /// <summary>

@@ -98,7 +98,7 @@ namespace PiServerLite.Html
                 }
                 else {
                     // Process Variable Tag
-                    if (valueCollection != null && valueCollection.TryGetValue(tag, out var item_value)) {
+                    if (valueCollection != null && valueCollection.TryGetFormattedValue(tag, out var item_value)) {
                         result.Builder.Append(item_value);
                         continue;
                     }
