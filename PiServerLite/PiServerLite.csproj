@@ -49,6 +49,7 @@
     <Compile Include="Html\UrlUtility.cs" />
     <Compile Include="Html\VariableCollection.cs" />
     <Compile Include="Http\Handlers\HttpHandlerBase.cs" />
+    <Compile Include="Http\Handlers\ResponseBodyBuilder.cs" />
     <Compile Include="Http\Handlers\ResponseBuilder.cs" />
     <Compile Include="Http\HttpReceiverContext.cs" />
     <Compile Include="Http\Content\ContentDirectory.cs" />

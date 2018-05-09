@@ -15,8 +15,8 @@ namespace PiServerLite.Http.Handlers
         private readonly HttpReceiverContext context;
 
         private Stream streamContent;
-        private Action<HttpHandlerResult, Stream> contentAction;
-        private Func<HttpHandlerResult, Stream, CancellationToken, Task> contentActionAsync;
+        private Action<ResponseBodyBuilder> contentAction;
+        private Func<ResponseBodyBuilder, CancellationToken, Task> contentActionAsync;
         private string redirectUrl;
 
         public int StatusCode {get; set;}
@@ -74,65 +74,63 @@ namespace PiServerLite.Http.Handlers
             return this;
         }
 
-        public HttpHandlerResult SetContent(Action<HttpHandlerResult, Stream> writeAction)
+        public HttpHandlerResult SetContent(Action<ResponseBodyBuilder> writeAction)
         {
             contentAction = writeAction;
             return this;
         }
 
-        public HttpHandlerResult SetContent(Func<HttpHandlerResult, Stream, Task> writeActionAsync)
+        public HttpHandlerResult SetContent(Func<ResponseBodyBuilder, CancellationToken, Task> writeActionAsync)
         {
-            contentActionAsync = async (response, stream, token) => await writeActionAsync(response, stream);
+            contentActionAsync = async (builder, token) => await writeActionAsync(builder, token);
             return this;
         }
 
-        public HttpHandlerResult SetContent(Func<HttpHandlerResult, Stream, CancellationToken, Task> writeActionAsync)
-        {
-            contentActionAsync = async (response, stream, token) => await writeActionAsync(response, stream, token);
-            return this;
-        }
+        //internal void Apply(HttpListenerContext context)
+        //{
+        //    if (!string.IsNullOrEmpty(redirectUrl)) {
+        //        context.Response.Redirect(redirectUrl);
+        //        return;
+        //    }
 
-        internal void Apply(HttpListenerContext context)
-        {
-            if (!string.IsNullOrEmpty(redirectUrl)) {
-                context.Response.Redirect(redirectUrl);
-                return;
-            }
+        //    context.Response.StatusCode = StatusCode;
+        //    context.Response.StatusDescription = StatusDescription;
+        //    context.Response.ContentType = ContentType;
+        //    context.Response.SendChunked = SendChunked;
 
-            context.Response.StatusCode = StatusCode;
-            context.Response.StatusDescription = StatusDescription;
-            context.Response.ContentType = ContentType;
-            context.Response.SendChunked = SendChunked;
+        //    foreach (var headerKey in Headers.Keys)
+        //        context.Response.Headers[headerKey] = Headers[headerKey];
 
-            foreach (var headerKey in Headers.Keys)
-                context.Response.Headers[headerKey] = Headers[headerKey];
+        //    if (!SendChunked)
+        //        context.Response.ContentLength64 = ContentLength;
 
-            if (!SendChunked)
-                context.Response.ContentLength64 = ContentLength;
+        //    if (contentActionAsync != null) {
+        //        var tokenSource = new CancellationTokenSource();
+        //        try {
+        //            var token = tokenSource.Token;
+        //            var builder = new ResponseBodyBuilder(this) {
+        //                StreamFunc = () => context.Response.OutputStream,
+        //            };
 
-            if (contentActionAsync != null) {
-                var tokenSource = new CancellationTokenSource();
-                try {
-                    var token = tokenSource.Token;
-                    contentActionAsync.Invoke(this, context.Response.OutputStream, token)
-                        .GetAwaiter().GetResult();
-                }
-                catch (Exception) {
-                    tokenSource.Cancel();
-                    throw;
-                }
-                finally {
-                    tokenSource.Dispose();
-                }
-            }
-            else if (contentAction != null) {
-                contentAction.Invoke(this, context.Response.OutputStream);
-            }
-            else if (streamContent != null) {
-                streamContent.Seek(0, SeekOrigin.Begin);
-                streamContent.CopyTo(context.Response.OutputStream);
-            }
-        }
+        //            contentActionAsync.Invoke(builder, token)
+        //                .GetAwaiter().GetResult();
+        //        }
+        //        catch (Exception) {
+        //            tokenSource.Cancel();
+        //            throw;
+        //        }
+        //        finally {
+        //            tokenSource.Dispose();
+        //        }
+        //    }
+        //    else if (contentAction != null) {
+        //        contentAction.Invoke(this, context.Response.OutputStream);
+        //    }
+        //    else if (streamContent != null) {
+        //        streamContent.Seek(0, SeekOrigin.Begin);
+        //        streamContent.CopyTo(context.Response.OutputStream);
+        //    }
+        //}
 
         internal async Task ApplyAsync(HttpListenerContext context, CancellationToken token)
         {
@@ -149,19 +147,29 @@ namespace PiServerLite.Http.Handlers
             foreach (var headerKey in Headers.Keys)
                 context.Response.Headers[headerKey] = Headers[headerKey];
 
-            if (!SendChunked)
-                context.Response.ContentLength64 = ContentLength;
-
             if (contentActionAsync != null) {
-                await contentActionAsync.Invoke(this, context.Response.OutputStream, token);
+                var builder = new ResponseBodyBuilder {
+                    SetLengthAction = len => context.Response.ContentLength64 = len,
+                    StreamFunc = () => context.Response.OutputStream,
+                };
+
+                await contentActionAsync.Invoke(builder, token);
             }
             else if (contentAction != null) {
-                await Task.Run(() => contentAction.Invoke(this, context.Response.OutputStream), token);
+                var builder = new ResponseBodyBuilder {
+                    SetLengthAction = len => context.Response.ContentLength64 = len,
+                    StreamFunc = () => context.Response.OutputStream,
+                };
+
+                await Task.Run(() => contentAction.Invoke(builder), token);
             }
             else if (streamContent != null) {
                 streamContent.Seek(0, SeekOrigin.Begin);
                 await streamContent.CopyToAsync(context.Response.OutputStream);
                 await context.Response.OutputStream.FlushAsync(token);
+            }
+            else if (!SendChunked) {
+                context.Response.ContentLength64 = 0;
             }
         }
 
@@ -249,10 +257,10 @@ namespace PiServerLite.Http.Handlers
                 StatusDescription = "OK.",
                 ContentType = context.MimeTypes.Get(ext),
                 ContentLength = new FileInfo(filename).Length,
-            }.SetContent(async (response, responseStream, token) => {
+            }.SetContent(async (response, token) => {
                 using (var stream = System.IO.File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-                    response.ContentLength = stream.Length - stream.Position;
-                    await stream.CopyToAsync(responseStream);
+                    response.SetLength(stream.Length - stream.Position);
+                    await stream.CopyToAsync(response.GetStream());
                 }
             });
         }
