@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace PiServerLite.Http.Routes
@@ -42,57 +43,20 @@ namespace PiServerLite.Http.Routes
             }
         }
 
-        internal HttpHandlerResult Execute(IHttpHandler handlerObj)
+        internal async Task<HttpHandlerResult> ExecuteAsync(IHttpHandler handlerObj, CancellationToken token)
         {
             var method = handlerObj.HttpContext.Request.HttpMethod.ToUpper();
 
             if (handlerObj is HttpHandlerAsync handlerAsync) {
                 switch (method) {
                     case "GET":
-                        return handlerAsync.GetAsync().GetAwaiter().GetResult();
+                        return await handlerAsync.GetAsync(token);
                     case "POST":
-                        return handlerAsync.PostAsync().GetAwaiter().GetResult();
+                        return await handlerAsync.PostAsync(token);
                     case "HEAD":
-                        return handlerAsync.HeadAsync().GetAwaiter().GetResult();
+                        return await handlerAsync.HeadAsync(token);
                     case "OPTIONS":
-                        return handlerAsync.OptionsAsync().GetAwaiter().GetResult();
-                    default:
-                        throw new ApplicationException();
-                }
-            }
-
-            if (handlerObj is HttpHandler handler) {
-                switch (method) {
-                    case "GET":
-                        return handler.Get();
-                    case "POST":
-                        return handler.Post();
-                    case "HEAD":
-                        return handler.Head();
-                    case "OPTIONS":
-                        return handler.Options();
-                    default:
-                        throw new ApplicationException($"Unsupported method '{method}'!");
-                }
-            }
-
-            return null;
-        }
-
-        internal async Task<HttpHandlerResult> ExecuteAsync(IHttpHandler handlerObj)
-        {
-            var method = handlerObj.HttpContext.Request.HttpMethod.ToUpper();
-
-            if (handlerObj is HttpHandlerAsync handlerAsync) {
-                switch (method) {
-                    case "GET":
-                        return await handlerAsync.GetAsync();
-                    case "POST":
-                        return await handlerAsync.PostAsync();
-                    case "HEAD":
-                        return await handlerAsync.HeadAsync();
-                    case "OPTIONS":
-                        return await handlerAsync.OptionsAsync();
+                        return await handlerAsync.OptionsAsync(token);
                     default:
                         throw new ApplicationException($"Unsupported method '{method}'!");
                 }
@@ -112,7 +76,7 @@ namespace PiServerLite.Http.Routes
                         default:
                             throw new ApplicationException($"Unsupported method '{method}'!");
                     }
-                });
+                }, token);
             }
 
             return null;

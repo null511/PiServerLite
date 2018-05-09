@@ -174,7 +174,7 @@ namespace PiServerLite.Http
             HttpHandlerResult result = null;
             var tokenSource = new CancellationTokenSource();
             try {
-                result = await GetRouteResult(httpContext, path)
+                result = await GetRouteResult(httpContext, path, tokenSource.Token)
                     ?? HttpHandlerResult.NotFound(Context)
                         .SetText($"No content found matching path '{path}'!");
 
@@ -194,7 +194,7 @@ namespace PiServerLite.Http
             }
         }
 
-        private async Task<HttpHandlerResult> GetRouteResult(HttpListenerContext httpContext, string path)
+        private async Task<HttpHandlerResult> GetRouteResult(HttpListenerContext httpContext, string path, CancellationToken token)
         {
             var overrideRoute = RouteOverrides.Where(x => x.IsEnabled)
                 .FirstOrDefault(x => x.FilterFunc(path));
@@ -266,7 +266,7 @@ namespace PiServerLite.Http
                     var handler = Routes.GetHandler(routeDesc, httpContext, Context);
                     if (handler == null) return null;
 
-                    return await Routes.ExecuteAsync(handler);
+                    return await Routes.ExecuteAsync(handler, token);
                 }
                 catch (Exception error) {
                     return HttpHandlerResult.Exception(Context, error);

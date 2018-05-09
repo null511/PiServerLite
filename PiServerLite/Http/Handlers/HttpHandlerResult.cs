@@ -15,8 +15,8 @@ namespace PiServerLite.Http.Handlers
         private readonly HttpReceiverContext context;
 
         private Stream streamContent;
-        private Action<Stream> contentAction;
-        private Func<Stream, CancellationToken, Task> contentActionAsync;
+        private Action<HttpHandlerResult, Stream> contentAction;
+        private Func<HttpHandlerResult, Stream, CancellationToken, Task> contentActionAsync;
         private string redirectUrl;
 
         public int StatusCode {get; set;}
@@ -74,21 +74,21 @@ namespace PiServerLite.Http.Handlers
             return this;
         }
 
-        public HttpHandlerResult SetContent(Action<Stream> writeAction)
+        public HttpHandlerResult SetContent(Action<HttpHandlerResult, Stream> writeAction)
         {
             contentAction = writeAction;
             return this;
         }
 
-        public HttpHandlerResult SetContent(Func<Stream, Task> writeActionAsync)
+        public HttpHandlerResult SetContent(Func<HttpHandlerResult, Stream, Task> writeActionAsync)
         {
-            contentActionAsync = async (stream, token) => await writeActionAsync(stream);
+            contentActionAsync = async (response, stream, token) => await writeActionAsync(response, stream);
             return this;
         }
 
-        public HttpHandlerResult SetContent(Func<Stream, CancellationToken, Task> writeActionAsync)
+        public HttpHandlerResult SetContent(Func<HttpHandlerResult, Stream, CancellationToken, Task> writeActionAsync)
         {
-            contentActionAsync = async (stream, token) => await writeActionAsync(stream, token);
+            contentActionAsync = async (response, stream, token) => await writeActionAsync(response, stream, token);
             return this;
         }
 
@@ -114,7 +114,8 @@ namespace PiServerLite.Http.Handlers
                 var tokenSource = new CancellationTokenSource();
                 try {
                     var token = tokenSource.Token;
-                    contentActionAsync.Invoke(context.Response.OutputStream, token).GetAwaiter().GetResult();
+                    contentActionAsync.Invoke(this, context.Response.OutputStream, token)
+                        .GetAwaiter().GetResult();
                 }
                 catch (Exception) {
                     tokenSource.Cancel();
@@ -125,7 +126,7 @@ namespace PiServerLite.Http.Handlers
                 }
             }
             else if (contentAction != null) {
-                contentAction.Invoke(context.Response.OutputStream);
+                contentAction.Invoke(this, context.Response.OutputStream);
             }
             else if (streamContent != null) {
                 streamContent.Seek(0, SeekOrigin.Begin);
@@ -152,10 +153,10 @@ namespace PiServerLite.Http.Handlers
                 context.Response.ContentLength64 = ContentLength;
 
             if (contentActionAsync != null) {
-                await contentActionAsync.Invoke(context.Response.OutputStream, token);
+                await contentActionAsync.Invoke(this, context.Response.OutputStream, token);
             }
             else if (contentAction != null) {
-                await Task.Run(() => contentAction.Invoke(context.Response.OutputStream), token);
+                await Task.Run(() => contentAction.Invoke(this, context.Response.OutputStream), token);
             }
             else if (streamContent != null) {
                 streamContent.Seek(0, SeekOrigin.Begin);
@@ -248,9 +249,10 @@ namespace PiServerLite.Http.Handlers
                 StatusDescription = "OK.",
                 ContentType = context.MimeTypes.Get(ext),
                 ContentLength = new FileInfo(filename).Length,
-            }.SetContent(responseStream => {
+            }.SetContent(async (response, responseStream, token) => {
                 using (var stream = System.IO.File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-                    stream.CopyTo(responseStream);
+                    response.ContentLength = stream.Length - stream.Position;
+                    await stream.CopyToAsync(responseStream);
                 }
             });
         }

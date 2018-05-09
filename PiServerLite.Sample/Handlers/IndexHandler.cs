@@ -4,11 +4,11 @@ namespace PiServerLite.Sample.Handlers
 {
     [HttpHandler("/")]
     [HttpHandler("/index")]
-    class IndexHandler : HttpHandler
+    internal class IndexHandler : HttpHandler
     {
         public override HttpHandlerResult Get()
         {
-            return View("Index.html");
+            return Response.View("Index.html");
         }
     }
 }

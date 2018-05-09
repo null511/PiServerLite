@@ -1,111 +1,28 @@
-﻿using PiServerLite.Extensions;
-using PiServerLite.Html;
-using System;
-using System.Net;
+﻿using System.Threading;
 using System.Threading.Tasks;
-using System.Web;
 
 namespace PiServerLite.Http.Handlers
 {
-    public abstract class HttpHandlerAsync : IHttpHandler
+    public abstract class HttpHandlerAsync : HttpHandlerBase
     {
-        public HttpListenerContext HttpContext {get; set;}
-        public HttpReceiverContext Context {get; set;}
-
-        public RequestAs As => new RequestAs(HttpContext.Request);
-        public UrlUtility Urls => new UrlUtility(Context);
-
-
-        public virtual void OnRequestReceived() {}
-
-        //-----------------------------
-        #region Methods
-
-        public virtual async Task<HttpHandlerResult> GetAsync()
+        public virtual async Task<HttpHandlerResult> GetAsync(CancellationToken token)
         {
-            return await Task.Run(() => NotFound());
+            return await Task.Run(() => Response.NotFound(), token);
         }
 
-        public virtual async Task<HttpHandlerResult> PostAsync()
+        public virtual async Task<HttpHandlerResult> PostAsync(CancellationToken token)
         {
-            return await Task.Run(() => NotFound());
+            return await Task.Run(() => Response.NotFound(), token);
         }
 
-        public virtual async Task<HttpHandlerResult> HeadAsync()
+        public virtual async Task<HttpHandlerResult> HeadAsync(CancellationToken token)
         {
-            return await Task.Run(() => NotFound());
+            return await Task.Run(() => Response.NotFound(), token);
         }
 
-        public virtual async Task<HttpHandlerResult> OptionsAsync()
+        public virtual async Task<HttpHandlerResult> OptionsAsync(CancellationToken token)
         {
-            return await Task.Run(() => NotFound());
-        }
-
-        #endregion
-        //-----------------------------
-        #region Results
-
-        public HttpHandlerResult Ok()
-        {
-            return HttpHandlerResult.Ok(Context);
-        }
-
-        public HttpHandlerResult Status(HttpStatusCode statusCode)
-        {
-            return HttpHandlerResult.Status(Context, statusCode);
-        }
-
-        public HttpHandlerResult NotFound()
-        {
-            return HttpHandlerResult.NotFound(Context);
-        }
-
-        public HttpHandlerResult BadRequest()
-        {
-            return HttpHandlerResult.BadRequest(Context);
-        }
-
-        public HttpHandlerResult Redirect(string path, object queryArgs = null)
-        {
-            return HttpHandlerResult.Redirect(Context, path, queryArgs);
-        }
-
-        public HttpHandlerResult RedirectUrl(string url)
-        {
-            return HttpHandlerResult.RedirectUrl(Context, url);
-        }
-
-        public HttpHandlerResult Exception(Exception error)
-        {
-            return HttpHandlerResult.Exception(Context, error);
-        }
-
-        public HttpHandlerResult View(string name, object param = null)
-        {
-            return HttpHandlerResult.View(Context, name, param);
-        }
-
-        #endregion
-        //-----------------------------
-
-        /// <summary>
-        /// Gets a value from the query string.
-        /// </summary>
-        public string GetQuery(string key, string defaultValue = null)
-        {
-            var value = HttpContext.Request.QueryString.Get(key);
-            if (value == null) return defaultValue;
-            return HttpUtility.UrlDecode(value);
-        }
-
-        /// <summary>
-        /// Gets a value from the query string, cast to the specified type.
-        /// </summary>
-        public T GetQuery<T>(string key, T defaultValue = default(T))
-        {
-            var value = HttpContext.Request.QueryString.Get(key);
-            if (value == null) return defaultValue;
-            return HttpUtility.UrlDecode(value).To<T>();
+            return await Task.Run(() => Response.NotFound(), token);
         }
     }
 }
