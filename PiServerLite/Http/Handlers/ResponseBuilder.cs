@@ -18,7 +18,7 @@ namespace PiServerLite.Http.Handlers
         /// </summary>
         public HttpHandlerResult Ok()
         {
-            return HttpHandlerResult.Ok(handler.Context);
+            return HttpHandlerResult.Ok();
         }
 
         /// <summary>
@@ -27,7 +27,7 @@ namespace PiServerLite.Http.Handlers
         /// </summary>
         public HttpHandlerResult Status(HttpStatusCode statusCode)
         {
-            return HttpHandlerResult.Status(handler.Context, statusCode);
+            return HttpHandlerResult.Status(statusCode);
         }
 
         /// <summary>
@@ -35,7 +35,7 @@ namespace PiServerLite.Http.Handlers
         /// </summary>
         public HttpHandlerResult NotFound()
         {
-            return HttpHandlerResult.NotFound(handler.Context);
+            return HttpHandlerResult.NotFound();
         }
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace PiServerLite.Http.Handlers
         /// </summary>
         public HttpHandlerResult BadRequest()
         {
-            return HttpHandlerResult.BadRequest(handler.Context);
+            return HttpHandlerResult.BadRequest();
         }
 
         /// <summary>
@@ -59,7 +59,7 @@ namespace PiServerLite.Http.Handlers
         /// </summary>
         public HttpHandlerResult RedirectUrl(string url)
         {
-            return HttpHandlerResult.RedirectUrl(handler.Context, url);
+            return HttpHandlerResult.RedirectUrl(url);
         }
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace PiServerLite.Http.Handlers
         /// </summary>
         public HttpHandlerResult Exception(Exception error)
         {
-            return HttpHandlerResult.Exception(handler.Context, error);
+            return HttpHandlerResult.Exception(error);
         }
 
         /// <summary>

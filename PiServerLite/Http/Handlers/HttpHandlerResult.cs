@@ -12,13 +12,15 @@ namespace PiServerLite.Http.Handlers
 {
     public class HttpHandlerResult : IDisposable
     {
-        private readonly HttpReceiverContext context;
+        //private readonly HttpReceiverContext context;
 
         private Stream streamContent;
+        private Func<Stream> streamContentFunc;
         private Action<ResponseBodyBuilder> contentAction;
         private Func<ResponseBodyBuilder, CancellationToken, Task> contentActionAsync;
         private string redirectUrl;
 
+        public bool AutoRewindStream {get; set;}
         public int StatusCode {get; set;}
         public string StatusDescription {get; set;}
         public string ContentType {get; set;}
@@ -29,9 +31,9 @@ namespace PiServerLite.Http.Handlers
         public Dictionary<string, string> Headers {get; set;}
 
 
-        public HttpHandlerResult(HttpReceiverContext context)
+        public HttpHandlerResult(/*HttpReceiverContext context*/)
         {
-            this.context = context;
+            //this.context = context;
 
             Headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
@@ -74,6 +76,12 @@ namespace PiServerLite.Http.Handlers
             return this;
         }
 
+        public HttpHandlerResult SetContent(Func<Stream> streamFunc)
+        {
+            streamContentFunc = streamFunc;
+            return this;
+        }
+
         public HttpHandlerResult SetContent(Action<ResponseBodyBuilder> writeAction)
         {
             contentAction = writeAction;
@@ -85,52 +93,6 @@ namespace PiServerLite.Http.Handlers
             contentActionAsync = async (builder, token) => await writeActionAsync(builder, token);
             return this;
         }
-
-        //internal void Apply(HttpListenerContext context)
-        //{
-        //    if (!string.IsNullOrEmpty(redirectUrl)) {
-        //        context.Response.Redirect(redirectUrl);
-        //        return;
-        //    }
-
-        //    context.Response.StatusCode = StatusCode;
-        //    context.Response.StatusDescription = StatusDescription;
-        //    context.Response.ContentType = ContentType;
-        //    context.Response.SendChunked = SendChunked;
-
-        //    foreach (var headerKey in Headers.Keys)
-        //        context.Response.Headers[headerKey] = Headers[headerKey];
-
-        //    if (!SendChunked)
-        //        context.Response.ContentLength64 = ContentLength;
-
-        //    if (contentActionAsync != null) {
-        //        var tokenSource = new CancellationTokenSource();
-        //        try {
-        //            var token = tokenSource.Token;
-        //            var builder = new ResponseBodyBuilder(this) {
-        //                StreamFunc = () => context.Response.OutputStream,
-        //            };
-
-        //            contentActionAsync.Invoke(builder, token)
-        //                .GetAwaiter().GetResult();
-        //        }
-        //        catch (Exception) {
-        //            tokenSource.Cancel();
-        //            throw;
-        //        }
-        //        finally {
-        //            tokenSource.Dispose();
-        //        }
-        //    }
-        //    else if (contentAction != null) {
-        //        contentAction.Invoke(this, context.Response.OutputStream);
-        //    }
-        //    else if (streamContent != null) {
-        //        streamContent.Seek(0, SeekOrigin.Begin);
-        //        streamContent.CopyTo(context.Response.OutputStream);
-        //    }
-        //}
 
         internal async Task ApplyAsync(HttpListenerContext context, CancellationToken token)
         {
@@ -163,8 +125,20 @@ namespace PiServerLite.Http.Handlers
 
                 await Task.Run(() => contentAction.Invoke(builder), token);
             }
+            else if (streamContentFunc != null) {
+                using (var stream = streamContentFunc()) {
+                    if (AutoRewindStream)
+                        stream.Seek(0, SeekOrigin.Begin);
+
+                    context.Response.ContentLength64 = stream.Length - stream.Position;
+                    await stream.CopyToAsync(context.Response.OutputStream, 81920, token);
+                    await context.Response.OutputStream.FlushAsync(token);
+                }
+            }
             else if (streamContent != null) {
-                streamContent.Seek(0, SeekOrigin.Begin);
+                if (AutoRewindStream)
+                    streamContent.Seek(0, SeekOrigin.Begin);
+
                 await streamContent.CopyToAsync(context.Response.OutputStream);
                 await context.Response.OutputStream.FlushAsync(token);
             }
@@ -173,25 +147,25 @@ namespace PiServerLite.Http.Handlers
             }
         }
 
-        public static HttpHandlerResult Status(HttpReceiverContext context, HttpStatusCode statusCode)
+        public static HttpHandlerResult Status(HttpStatusCode statusCode)
         {
-            return new HttpHandlerResult(context) {
+            return new HttpHandlerResult {
                 StatusCode = (int)statusCode,
                 StatusDescription = statusCode.ToString(),
             };
         }
 
-        public static HttpHandlerResult Ok(HttpReceiverContext context)
+        public static HttpHandlerResult Ok()
         {
-            return new HttpHandlerResult(context) {
+            return new HttpHandlerResult {
                 StatusCode = (int)HttpStatusCode.OK,
                 StatusDescription = "OK.",
             };
         }
 
-        public static HttpHandlerResult NotFound(HttpReceiverContext context)
+        public static HttpHandlerResult NotFound()
         {
-            return new HttpHandlerResult(context) {
+            return new HttpHandlerResult {
                 StatusCode = (int)HttpStatusCode.NotFound,
                 StatusDescription = "Not Found!",
             }.SetText("404 - Not Found");
@@ -201,9 +175,9 @@ namespace PiServerLite.Http.Handlers
         /// Return a [400] HTTP Bad Request response.
         /// </summary>
         /// <returns>HTTP [400] Bad Request.</returns>
-        public static HttpHandlerResult BadRequest(HttpReceiverContext context)
+        public static HttpHandlerResult BadRequest()
         {
-            return new HttpHandlerResult(context) {
+            return new HttpHandlerResult {
                 StatusCode = (int)HttpStatusCode.BadRequest,
                 StatusDescription = "Bad Request!",
             };
@@ -213,9 +187,9 @@ namespace PiServerLite.Http.Handlers
         /// Return a [401] HTTP Unauthorized response.
         /// </summary>
         /// <returns>HTTP [401] Unauthorized.</returns>
-        public static HttpHandlerResult Unauthorized(HttpReceiverContext context)
+        public static HttpHandlerResult Unauthorized()
         {
-            return new HttpHandlerResult(context) {
+            return new HttpHandlerResult {
                 StatusCode = (int)HttpStatusCode.Unauthorized,
                 StatusDescription = "Unauthorized!",
             };
@@ -230,7 +204,7 @@ namespace PiServerLite.Http.Handlers
             var urlUtility = new UrlUtility(context);
             var url = urlUtility.GetRelative(path, queryArgs);
 
-            return new HttpHandlerResult(context) {
+            return new HttpHandlerResult {
                 StatusCode = (int)HttpStatusCode.Redirect,
                 redirectUrl = url,
             };
@@ -240,9 +214,9 @@ namespace PiServerLite.Http.Handlers
         /// Redirect the response to an absolute URL.
         /// </summary>
         /// <returns>HTTP [302] Redirect.</returns>
-        public static HttpHandlerResult RedirectUrl(HttpReceiverContext context, string url)
+        public static HttpHandlerResult RedirectUrl(string url)
         {
-            return new HttpHandlerResult(context) {
+            return new HttpHandlerResult {
                 StatusCode = (int)HttpStatusCode.Redirect,
                 redirectUrl = url,
             };
@@ -252,26 +226,22 @@ namespace PiServerLite.Http.Handlers
         {
             var ext = Path.GetExtension(filename);
 
-            return new HttpHandlerResult(context) {
+            return new HttpHandlerResult {
                 StatusCode = (int)HttpStatusCode.OK,
                 StatusDescription = "OK.",
                 ContentType = context.MimeTypes.Get(ext),
                 ContentLength = new FileInfo(filename).Length,
-            }.SetContent(async (response, token) => {
-                using (var stream = System.IO.File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-                    response.SetLength(stream.Length - stream.Position);
-                    await stream.CopyToAsync(response.GetStream());
-                }
-            });
+                streamContentFunc = () => System.IO.File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read),
+            };
         }
 
         /// <summary>
         /// Return a [500] HTTP Internal Server Error response.
         /// </summary>
         /// <returns>HTTP [500] Internal Server Error.</returns>
-        public static HttpHandlerResult Exception(HttpReceiverContext context, Exception error)
+        public static HttpHandlerResult Exception(Exception error)
         {
-            return new HttpHandlerResult(context) {
+            return new HttpHandlerResult {
                 StatusCode = (int)HttpStatusCode.InternalServerError,
                 StatusDescription = "Internal Server Error!",
             }.SetText(error.ToString());
@@ -293,7 +263,7 @@ namespace PiServerLite.Http.Handlers
 
             content = engine.Process(content, param);
 
-            return new HttpHandlerResult(context) {
+            return new HttpHandlerResult {
                 StatusCode = (int)HttpStatusCode.OK,
                 StatusDescription = "OK.",
             }.SetText(content);

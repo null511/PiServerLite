@@ -175,7 +175,7 @@ namespace PiServerLite.Http
             var tokenSource = new CancellationTokenSource();
             try {
                 result = await GetRouteResult(httpContext, path, tokenSource.Token)
-                    ?? HttpHandlerResult.NotFound(Context)
+                    ?? HttpHandlerResult.NotFound()
                         .SetText($"No content found matching path '{path}'!");
 
                 await result.ApplyAsync(httpContext, tokenSource.Token);
@@ -204,7 +204,7 @@ namespace PiServerLite.Http
                 if (overrideRoute.IsSecure && Context.SecurityMgr != null) {
                     if (!Context.SecurityMgr.Authorize(httpContext.Request)) {
                         return Context.SecurityMgr.OnUnauthorized(httpContext, Context)
-                            ?? HttpHandlerResult.Unauthorized(Context);
+                            ?? HttpHandlerResult.Unauthorized();
                     }
                 }
 
@@ -214,7 +214,7 @@ namespace PiServerLite.Http
                     return await overrideRoute.ExecuteEvent.Invoke(httpContext, Context);
                 }
                 catch (Exception error) {
-                    return HttpHandlerResult.Exception(Context, error);
+                    return HttpHandlerResult.Exception(error);
                 }
             }
 
@@ -226,7 +226,7 @@ namespace PiServerLite.Http
                 if (contentRoute.IsSecure && Context.SecurityMgr != null) {
                     if (!Context.SecurityMgr.Authorize(httpContext.Request)) {
                         return Context.SecurityMgr.OnUnauthorized(httpContext, Context)
-                            ?? HttpHandlerResult.Unauthorized(Context);
+                            ?? HttpHandlerResult.Unauthorized();
                     }
                 }
 
@@ -239,7 +239,7 @@ namespace PiServerLite.Http
                 if (overrideRoute.IsSecure && Context.SecurityMgr != null) {
                     if (!Context.SecurityMgr.Authorize(httpContext.Request)) {
                         return Context.SecurityMgr.OnUnauthorized(httpContext, Context)
-                            ?? HttpHandlerResult.Unauthorized(Context);
+                            ?? HttpHandlerResult.Unauthorized();
                     }
                 }
 
@@ -249,7 +249,7 @@ namespace PiServerLite.Http
                     return await overrideRoute.ExecuteEvent.Invoke(httpContext, Context);
                 }
                 catch (Exception error) {
-                    return HttpHandlerResult.Exception(Context, error);
+                    return HttpHandlerResult.Exception(error);
                 }
             }
 
@@ -258,7 +258,7 @@ namespace PiServerLite.Http
                 if (routeDesc.IsSecure && Context.SecurityMgr != null) {
                     if (!Context.SecurityMgr.Authorize(httpContext.Request)) {
                         return Context.SecurityMgr.OnUnauthorized(httpContext, Context)
-                            ?? HttpHandlerResult.Unauthorized(Context);
+                            ?? HttpHandlerResult.Unauthorized();
                     }
                 }
 
@@ -269,7 +269,7 @@ namespace PiServerLite.Http
                     return await Routes.ExecuteAsync(handler, token);
                 }
                 catch (Exception error) {
-                    return HttpHandlerResult.Exception(Context, error);
+                    return HttpHandlerResult.Exception(error);
                 }
             }
 
@@ -290,21 +290,21 @@ namespace PiServerLite.Http
             var fullLocalFilename = Path.GetFullPath(localFilename);
 
             if (!fullLocalFilename.StartsWith(fullRootPath))
-                return HttpHandlerResult.NotFound(Context)
+                return HttpHandlerResult.NotFound()
                     .SetText($"Requested file is outisde of the content directory! [{fullLocalFilename}]");
 
             var localFile = new FileInfo(fullLocalFilename);
 
             // Ensure file exists
             if (!localFile.Exists)
-                return HttpHandlerResult.NotFound(Context)
+                return HttpHandlerResult.NotFound()
                     .SetText($"File not found! [{fullLocalFilename}]");
 
             // HTTP Caching - Last-Modified
             var ifModifiedSince = context.Request.Headers.Get("If-Modified-Since");
             if (DateTime.TryParse(ifModifiedSince, out var ifModifiedSinceValue)) {
                 if (localFile.LastWriteTime.TrimMilliseconds() <= ifModifiedSinceValue)
-                    return HttpHandlerResult.Status(Context, HttpStatusCode.NotModified);
+                    return HttpHandlerResult.Status(HttpStatusCode.NotModified);
             }
 
             return HttpHandlerResult.File(Context, fullLocalFilename)
