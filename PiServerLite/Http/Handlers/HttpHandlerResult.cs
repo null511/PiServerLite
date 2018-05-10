@@ -35,6 +35,7 @@ namespace PiServerLite.Http.Handlers
         {
             //this.context = context;
 
+            AutoRewindStream = true;
             Headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
 
@@ -139,6 +140,7 @@ namespace PiServerLite.Http.Handlers
                 if (AutoRewindStream)
                     streamContent.Seek(0, SeekOrigin.Begin);
 
+                context.Response.ContentLength64 = streamContent.Length - streamContent.Position;
                 await streamContent.CopyToAsync(context.Response.OutputStream);
                 await context.Response.OutputStream.FlushAsync(token);
             }
