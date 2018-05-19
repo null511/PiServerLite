@@ -3,6 +3,10 @@ using System.Net;
 
 namespace PiServerLite.Http.Handlers
 {
+    /// <summary>
+    /// Extension point for creating a <see cref="HttpHandlerResult"/>
+    /// from a <see cref="IHttpHandler"/> method.
+    /// </summary>
     public class ResponseBuilder
     {
         private readonly IHttpHandler handler;

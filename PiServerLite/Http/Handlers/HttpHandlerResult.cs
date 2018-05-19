@@ -12,8 +12,6 @@ namespace PiServerLite.Http.Handlers
 {
     public class HttpHandlerResult : IDisposable
     {
-        //private readonly HttpReceiverContext context;
-
         private Stream streamContent;
         private Func<Stream> streamContentFunc;
         private Action<ResponseBodyBuilder> contentAction;
@@ -31,10 +29,8 @@ namespace PiServerLite.Http.Handlers
         public Dictionary<string, string> Headers {get; set;}
 
 
-        public HttpHandlerResult(/*HttpReceiverContext context*/)
+        public HttpHandlerResult()
         {
-            //this.context = context;
-
             AutoRewindStream = true;
             Headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
@@ -93,6 +89,11 @@ namespace PiServerLite.Http.Handlers
         {
             contentActionAsync = async (builder, token) => await writeActionAsync(builder, token);
             return this;
+        }
+
+        public Task<HttpHandlerResult> AsAsync()
+        {
+            return Task.FromResult(this);
         }
 
         internal async Task ApplyAsync(HttpListenerContext context, CancellationToken token)
@@ -157,6 +158,9 @@ namespace PiServerLite.Http.Handlers
             };
         }
 
+        /// <summary>
+        /// Creates an HTTP response with status 200: OK.
+        /// </summary>
         public static HttpHandlerResult Ok()
         {
             return new HttpHandlerResult {
@@ -165,6 +169,9 @@ namespace PiServerLite.Http.Handlers
             };
         }
 
+        /// <summary>
+        /// Creates an HTTP response with status 404: Not Found!
+        /// </summary>
         public static HttpHandlerResult NotFound()
         {
             return new HttpHandlerResult {
@@ -174,9 +181,8 @@ namespace PiServerLite.Http.Handlers
         }
 
         /// <summary>
-        /// Return a [400] HTTP Bad Request response.
+        /// Creates an HTTP response with status 400: Bad Request!
         /// </summary>
-        /// <returns>HTTP [400] Bad Request.</returns>
         public static HttpHandlerResult BadRequest()
         {
             return new HttpHandlerResult {
@@ -186,9 +192,8 @@ namespace PiServerLite.Http.Handlers
         }
 
         /// <summary>
-        /// Return a [401] HTTP Unauthorized response.
+        /// Creates an HTTP response with status 401: Unauthorized!
         /// </summary>
-        /// <returns>HTTP [401] Unauthorized.</returns>
         public static HttpHandlerResult Unauthorized()
         {
             return new HttpHandlerResult {
@@ -238,9 +243,9 @@ namespace PiServerLite.Http.Handlers
         }
 
         /// <summary>
-        /// Return a [500] HTTP Internal Server Error response.
+        /// Creates an HTTP response with status 500: Internal Server Error!
+        /// and the exception as the body.
         /// </summary>
-        /// <returns>HTTP [500] Internal Server Error.</returns>
         public static HttpHandlerResult Exception(Exception error)
         {
             return new HttpHandlerResult {
