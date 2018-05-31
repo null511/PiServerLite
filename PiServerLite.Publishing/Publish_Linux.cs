@@ -64,8 +64,6 @@ namespace PiServerLite.Publishing
                 },
             };
 
-            publisher.Client.Initialize();
-
             await publisher.PublishAsync(token);
         }
     }
