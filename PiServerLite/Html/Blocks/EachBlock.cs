@@ -57,7 +57,7 @@ namespace PiServerLite.Html.Blocks
             var objName = statement.Substring(0, statementVarSplit);
             var varName = statement.Substring(statementVarSplit + 1);
 
-            if (!valueCollection.TryGetFormattedValue(objName, out var objValue))
+            if (!valueCollection.TryGetValue(objName, out var objValue))
                 throw new RenderingException($"Variable '{objName}' not found!");
 
             if (objValue == null) return;

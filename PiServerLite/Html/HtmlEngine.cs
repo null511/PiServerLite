@@ -211,7 +211,7 @@ namespace PiServerLite.Html
 
             var read_pos = 0;
             while (read_pos < text.Length) {
-                if (!FindAnyTag(text, "<!--", "-->", read_pos, out var tagStart, out var tagEnd, out var tag)) break;
+                if (!FindAnyTag(text, "<!--", "-->", read_pos, out var tagStart, out var tagEnd, out _)) break;
 
                 result.Append(text, read_pos, tagStart - read_pos);
                 read_pos = tagEnd;

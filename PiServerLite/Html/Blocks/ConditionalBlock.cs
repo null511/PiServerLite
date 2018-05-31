@@ -90,7 +90,7 @@ namespace PiServerLite.Html.Blocks
                 falseBlockText = string.Empty;
             }
 
-            bool conditionResult = false;
+            var conditionResult = false;
 
             var conditionStart = tag.IndexOf(' ');
             if (conditionStart >= 0) {
@@ -99,7 +99,7 @@ namespace PiServerLite.Html.Blocks
                 var invert = condition.StartsWith("!");
                 if (invert) condition = condition.Substring(1);
 
-                if (valueCollection != null && valueCollection.TryGetFormattedValue(condition, out var item_value))
+                if (valueCollection != null && valueCollection.TryGetValue(condition, out var item_value))
                     conditionResult = TruthyEngine.GetValue(item_value);
 
                 if (invert)
