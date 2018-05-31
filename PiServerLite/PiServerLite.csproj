@@ -66,7 +66,6 @@
     <Compile Include="Http\Security\ISecurityManager.cs" />
     <Compile Include="Http\Handlers\RequestAs.cs" />
     <Compile Include="Http\Content\MimeTypeDictionary.cs" />
-    <Compile Include="Http\Security\ISecurityUser.cs" />
     <Compile Include="Http\Security\SecureAttribute.cs" />
     <Compile Include="ViewCache.cs" />
     <Compile Include="ViewCollection.cs" />

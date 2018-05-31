@@ -33,9 +33,14 @@ namespace PiServerLite.Html
         public virtual bool TryGetFormattedValue(string key, out object value)
         {
             var isQueryFormatted = false;
+            var isUnformatted = false;
 
             if (key.StartsWith("&")) {
                 isQueryFormatted = true;
+                key = key.Substring(1);
+            }
+            else if (key.StartsWith("$")) {
+                isUnformatted = true;
                 key = key.Substring(1);
             }
 
@@ -54,7 +59,12 @@ namespace PiServerLite.Html
                 return true;
             }
 
-            value = _value;
+            if (isUnformatted) {
+                value = _value;
+                return true;
+            }
+
+            value = HttpUtility.HtmlEncode(_value.ToString());
             return true;
         }
 
