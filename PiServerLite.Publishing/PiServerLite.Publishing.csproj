@@ -92,6 +92,7 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Publish_Linux.cs" />
     <Compile Include="Build_Linux.cs" />
     <Compile Include="Build_Win.cs" />
     <Compile Include="Internal\MsBuild.cs" />
