@@ -1,0 +1,8 @@
+{
+	"project": "piserverlite",
+	"refspec": "master",
+	"task": "Build_Linux",
+	"roles": [
+		"build-linux"
+	]
+}
