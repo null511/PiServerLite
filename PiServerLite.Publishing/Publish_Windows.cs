@@ -49,6 +49,7 @@ namespace PiServerLite.Publishing
         {
             var nugetPackageDir = Path.Combine(Context.WorkDirectory, "Packages");
             var nugetApiKey = Context.ServerVariables["global"]["nuget.apiKey"];
+            var nugetExe = Path.Combine(Context.ContentDirectory, "bin", "NuGet.exe");
 
             var publisher = new NuGetPackagePublisher(Context) {
                 Mode = NugetModes.CommandLine,
@@ -57,7 +58,7 @@ namespace PiServerLite.Publishing
                 PackageId = packageId,
                 Version = assemblyVersion,
                 CL = new NuGetCommandLine {
-                    ExeFilename = ".\\bin\\NuGet.exe",
+                    ExeFilename = nugetExe,
                     ApiKey = nugetApiKey,
                     Output = Context.Output,
                 },
