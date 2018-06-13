@@ -57,7 +57,7 @@ namespace PiServerLite.Publishing
                 PackageId = packageId,
                 Version = assemblyVersion,
                 CL = new NuGetCommandLine {
-                    ExeFilename = "bin\\NuGet.exe",
+                    ExeFilename = ".\\bin\\NuGet.exe",
                     ApiKey = nugetApiKey,
                     Output = Context.Output,
                 },
