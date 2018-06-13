@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace PiServerLite.Publishing
 {
-    public class Build_Win : IBuildTask
+    public class Build_Windows : IBuildTask
     {
         public IAgentBuildContext Context {get; set;}
 
