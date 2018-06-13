@@ -51,26 +51,28 @@ namespace PiServerLite.Publishing
             var nugetApiKey = Context.ServerVariables["global"]["nuget.apiKey"];
 
             var publisher = new NuGetPackagePublisher(Context) {
-                Mode = NugetModes.Hybrid,
+                Mode = NugetModes.CommandLine,
                 PackageDirectory = nugetPackageDir,
                 PackageDefinition = packageDefinitionFilename,
                 PackageId = packageId,
                 Version = assemblyVersion,
                 CL = new NuGetCommandLine {
                     ExeFilename = "bin\\NuGet.exe",
-                    Output = Context.Output,
-                },
-                Client = new NuGetCore {
                     ApiKey = nugetApiKey,
                     Output = Context.Output,
                 },
+                //Client = new NuGetCore {
+                //    EnableV3 = true,
+                //    ApiKey = nugetApiKey,
+                //    Output = Context.Output,
+                //},
                 PackProperties = {
                     ["Configuration"] = "Release",
                     ["Platform"] = "AnyCPU",
                 },
             };
 
-            publisher.Client.Initialize();
+            //publisher.Client.Initialize();
 
             await publisher.PublishAsync(token);
         }
