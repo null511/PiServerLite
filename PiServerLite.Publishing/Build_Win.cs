@@ -19,7 +19,7 @@ namespace PiServerLite.Publishing
         private async Task BuildSolution()
         {
             var msBuild = new MsBuild(Context) {
-                Exe = ".\\bin\\msbuild.cmd",
+                Exe = Context.AgentVariables["global"]["msbuild_exe"],
                 Filename = "PiServerLite.sln",
                 Configuration = "Release",
                 Platform = "Any CPU",
