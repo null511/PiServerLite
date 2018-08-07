@@ -48,6 +48,7 @@
     <Compile Include="Html\TruthyEngine.cs" />
     <Compile Include="Html\UrlUtility.cs" />
     <Compile Include="Html\VariableCollection.cs" />
+    <Compile Include="Http\Handlers\HttpFilterAttribute.cs" />
     <Compile Include="Http\Handlers\HttpHandlerBase.cs" />
     <Compile Include="Http\Handlers\ResponseBodyBuilder.cs" />
     <Compile Include="Http\Handlers\ResponseBuilder.cs" />

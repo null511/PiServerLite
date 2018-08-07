@@ -45,41 +45,42 @@ namespace PiServerLite.Http.Routes
 
         internal async Task<HttpHandlerResult> ExecuteAsync(IHttpHandler handlerObj, CancellationToken token)
         {
-            var method = handlerObj.HttpContext.Request.HttpMethod.ToUpper();
+            var method = handlerObj.HttpContext.Request.HttpMethod;
+            HttpHandlerResult result = null;
 
-            if (handlerObj is HttpHandlerAsync handlerAsync) {
-                switch (method) {
-                    case "GET":
-                        return await handlerAsync.GetAsync(token);
-                    case "POST":
-                        return await handlerAsync.PostAsync(token);
-                    case "HEAD":
-                        return await handlerAsync.HeadAsync(token);
-                    case "OPTIONS":
-                        return await handlerAsync.OptionsAsync(token);
-                    default:
+            var filters = handlerObj.GetType().GetCustomAttributes()
+                .OfType<HttpFilterAttribute>().ToArray();
+
+            foreach (var filter in filters) {
+                result = filter.Run(handlerObj, HttpFilterEvents.Before);
+                if (result != null) return result;
+            }
+
+            try {
+                if (handlerObj is HttpHandlerAsync handlerAsync) {
+                    if (!execMapAsync.TryGetValue(method, out var execFunc))
                         throw new ApplicationException($"Unsupported method '{method}'!");
+
+                    result = await execFunc.Invoke(handlerAsync, token);
+                }
+                else if (handlerObj is HttpHandler handler) {
+                    if (!execMap.TryGetValue(method, out var execFunc))
+                        throw new ApplicationException($"Unsupported method '{method}'!");
+
+                    result = await Task.Run(() => execFunc.Invoke(handler), token);
+                }
+            }
+            finally {
+                foreach (var filter in filters) {
+                    var newResult = filter.RunAfter(handlerObj, result);
+                    if (newResult != null) {
+                        result = newResult;
+                        break;
+                    }
                 }
             }
 
-            if (handlerObj is HttpHandler handler) {
-                return await Task.Run(() => {
-                    switch (method) {
-                        case "GET":
-                            return handler.Get();
-                        case "POST":
-                            return handler.Post();
-                        case "HEAD":
-                            return handler.Head();
-                        case "OPTIONS":
-                            return handler.Options();
-                        default:
-                            throw new ApplicationException($"Unsupported method '{method}'!");
-                    }
-                }, token);
-            }
-
-            return null;
+            return result;
         }
 
         internal bool FindRoute(string path, out HttpRouteDescription routeDescription)
@@ -100,5 +101,21 @@ namespace PiServerLite.Http.Routes
             handler.OnRequestReceived();
             return handler;
         }
+
+        private static readonly Dictionary<string, Func<HttpHandler, HttpHandlerResult>> execMap =
+            new Dictionary<string, Func<HttpHandler, HttpHandlerResult>>(StringComparer.OrdinalIgnoreCase) {
+                ["GET"] = handler => handler.Get(),
+                ["POST"] = handler => handler.Post(),
+                ["HEAD"] = handler => handler.Head(),
+                ["OPTIONS"] = handler => handler.Options(),
+            };
+
+        private static readonly Dictionary<string, Func<HttpHandlerAsync, CancellationToken, Task<HttpHandlerResult>>> execMapAsync =
+            new Dictionary<string, Func<HttpHandlerAsync, CancellationToken, Task<HttpHandlerResult>>>(StringComparer.OrdinalIgnoreCase) {
+                ["GET"] = (handler, token) => handler.GetAsync(token),
+                ["POST"] = (handler, token) => handler.PostAsync(token),
+                ["HEAD"] = (handler, token) => handler.HeadAsync(token),
+                ["OPTIONS"] = (handler, token) => handler.OptionsAsync(token),
+            };
     }
 }

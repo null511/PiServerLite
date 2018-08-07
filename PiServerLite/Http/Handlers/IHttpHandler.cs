@@ -7,6 +7,8 @@ namespace PiServerLite.Http.Handlers
     {
         HttpListenerContext HttpContext {get; set;}
         HttpReceiverContext Context {get; set;}
+        RequestAs Request {get;}
+        ResponseBuilder Response {get;}
         UrlUtility Urls {get;}
 
         void OnRequestReceived();
