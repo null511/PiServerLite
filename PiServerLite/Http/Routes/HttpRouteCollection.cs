@@ -83,6 +83,20 @@ namespace PiServerLite.Http.Routes
             return result;
         }
 
+        internal async Task<HttpHandlerResult> ExecuteUnauthorizedAsync(IHttpHandler handlerObj, CancellationToken token)
+        {
+            HttpHandlerResult result = null;
+
+            if (handlerObj is HttpHandlerAsync handlerAsync) {
+                result = await handlerAsync.OnUnauthorizedAsync(token);
+            }
+            else if (handlerObj is HttpHandler handler) {
+                result = await Task.Run(() => handler.OnUnauthorized(), token);
+            }
+
+            return result;
+        }
+
         internal bool FindRoute(string path, out HttpRouteDescription routeDescription)
         {
             var _path = path.StartsWith("/")

@@ -175,8 +175,7 @@ namespace PiServerLite.Http
             var tokenSource = new CancellationTokenSource();
             try {
                 result = await GetRouteResult(httpContext, path, tokenSource.Token)
-                    ?? HttpHandlerResult.NotFound()
-                        .SetText($"No content found matching path '{path}'!");
+                    ?? HttpHandlerResult.NotFound().SetText($"No content found matching path '{path}'!");
 
                 await result.ApplyAsync(httpContext, tokenSource.Token);
             }
@@ -203,8 +202,7 @@ namespace PiServerLite.Http
             if (overrideRoute != null && overrideRoute.IncludesContent) {
                 if (overrideRoute.IsSecure && Context.SecurityMgr != null) {
                     if (!Context.SecurityMgr.Authorize(httpContext.Request)) {
-                        return Context.SecurityMgr.OnUnauthorized(httpContext, Context)
-                            ?? HttpHandlerResult.Unauthorized();
+                        return GetRouteUnauthorizedResult(httpContext);
                     }
                 }
 
@@ -225,8 +223,7 @@ namespace PiServerLite.Http
             if (contentRoute != null) {
                 if (contentRoute.IsSecure && Context.SecurityMgr != null) {
                     if (!Context.SecurityMgr.Authorize(httpContext.Request)) {
-                        return Context.SecurityMgr.OnUnauthorized(httpContext, Context)
-                            ?? HttpHandlerResult.Unauthorized();
+                        return GetRouteUnauthorizedResult(httpContext);
                     }
                 }
 
@@ -238,8 +235,7 @@ namespace PiServerLite.Http
             if (overrideRoute != null) {
                 if (overrideRoute.IsSecure && Context.SecurityMgr != null) {
                     if (!Context.SecurityMgr.Authorize(httpContext.Request)) {
-                        return Context.SecurityMgr.OnUnauthorized(httpContext, Context)
-                            ?? HttpHandlerResult.Unauthorized();
+                        return GetRouteUnauthorizedResult(httpContext);
                     }
                 }
 
@@ -255,15 +251,21 @@ namespace PiServerLite.Http
 
             // Http Route
             if (Routes.FindRoute(path, out var routeDesc)) {
+                var handler = Routes.GetHandler(routeDesc, httpContext, Context);
+
                 if (routeDesc.IsSecure && Context.SecurityMgr != null) {
                     if (!Context.SecurityMgr.Authorize(httpContext.Request)) {
-                        return Context.SecurityMgr.OnUnauthorized(httpContext, Context)
-                            ?? HttpHandlerResult.Unauthorized();
+                        HttpHandlerResult result = null;
+                        if (handler != null) {
+                            result = await Routes.ExecuteUnauthorizedAsync(handler, token);
+                        }
+
+                        return result ?? GetRouteUnauthorizedResult(httpContext);
                     }
                 }
 
                 try {
-                    var handler = Routes.GetHandler(routeDesc, httpContext, Context);
+                    //var handler = Routes.GetHandler(routeDesc, httpContext, Context);
                     if (handler == null) return null;
 
                     return await Routes.ExecuteAsync(handler, token);
@@ -275,6 +277,12 @@ namespace PiServerLite.Http
 
             // Not Found
             return null;
+        }
+
+        private HttpHandlerResult GetRouteUnauthorizedResult(HttpListenerContext httpContext)
+        {
+            return Context.SecurityMgr.OnUnauthorized(httpContext, Context)
+                ?? HttpHandlerResult.Unauthorized();
         }
 
         private HttpHandlerResult ProcessContent(HttpListenerContext context, string localPath, ContentDirectory directory)

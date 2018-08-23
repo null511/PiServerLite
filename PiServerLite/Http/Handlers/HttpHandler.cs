@@ -21,5 +21,11 @@
         {
             return Response.NotFound();
         }
+
+        public virtual HttpHandlerResult OnUnauthorized()
+        {
+            return Context.SecurityMgr.OnUnauthorized(HttpContext, Context)
+                ?? HttpHandlerResult.Unauthorized();
+        }
     }
 }

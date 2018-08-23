@@ -24,5 +24,13 @@ namespace PiServerLite.Http.Handlers
         {
             return await Task.Run(() => Response.NotFound(), token);
         }
+
+        public virtual async Task<HttpHandlerResult> OnUnauthorizedAsync(CancellationToken token)
+        {
+            return await Task.Run(() => {
+                return Context.SecurityMgr.OnUnauthorized(HttpContext, Context)
+                    ?? HttpHandlerResult.Unauthorized();
+            }, token);
+        }
     }
 }
