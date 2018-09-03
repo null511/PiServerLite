@@ -1,8 +1,8 @@
 ﻿using Photon.Framework.Agent;
 using Photon.Framework.Tasks;
 using Photon.Framework.Tools;
+using Photon.MSBuild;
 using Photon.NuGetPlugin;
-using PiServerLite.Publishing.Internal;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,23 +16,28 @@ namespace PiServerLite.Publishing
         
         public async Task RunAsync(CancellationToken token)
         {
-            await BuildSolution();
+            await BuildSolution(token);
             await PublishProjectPackage(token);
         }
 
-        private async Task BuildSolution()
+        private async Task BuildSolution(CancellationToken token)
         {
-            var msbuild_exe = Context.AgentVariables["global"]["msbuild_exe"];
-
-            var msBuild = new MsBuild(Context) {
-                Exe = $"\"{msbuild_exe}\"",
-                Filename = "PiServerLite.sln",
-                Configuration = "Release",
-                Platform = "Any CPU",
-                Parallel = true,
+            var msbuild = new MSBuildCommand(Context) {
+                Exe = Context.AgentVariables["global"]["msbuild_exe"],
+                WorkingDirectory = Context.ContentDirectory,
             };
 
-            await msBuild.BuildAsync();
+            var buildArgs = new MSBuildArguments {
+                ProjectFile = "PiServerLite.sln",
+                Properties = {
+                    ["Configuration"] = "Release",
+                    ["Platform"] = "Any CPU",
+                },
+                Verbosity = MSBuildVerbosityLevel.Minimal,
+                MaxCpuCount = 0,
+            };
+
+            await msbuild.RunAsync(buildArgs, token);
         }
 
         private async Task PublishProjectPackage(CancellationToken token)
