@@ -1,0 +1,22 @@
+{
+	"id": "PiServerLite",
+	"name": "PiServer-Lite",
+	"description": "Publishes a compiled and tested NuGet Package for PiServerLite.",
+	"project": "PiServerLite",
+	"assembly": "PiServerLite.Publishing.dll",
+	"script": "Publish",
+	"files": [
+		{
+			"path": "bin\\Debug\\**",
+			"destination": "",
+			"exclude": [
+				"**\\*.xml",
+				"**\\*.pdb"
+			]
+		},
+		{
+			"path": "bin\\Package\\**",
+			"destination": "PublishPackage"
+		}
+	]
+}
