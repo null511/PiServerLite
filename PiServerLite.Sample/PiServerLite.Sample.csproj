@@ -58,12 +58,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\PiServerLite\PiServerLite.csproj">
-      <Project>{e2c75c94-d724-4355-8247-28eabc36cf38}</Project>
-      <Name>PiServerLite</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Content\font-awesome-4.7.0\css\font-awesome.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -80,6 +74,11 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\PiServerLite\PiServerLite.csproj">
+      <Project>{4e0e4ded-6c2f-4177-87b3-5db3f0bb4e33}</Project>
+      <Name>PiServerLite</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
