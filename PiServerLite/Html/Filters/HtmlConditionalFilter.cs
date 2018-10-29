@@ -1,15 +1,20 @@
 ﻿using System;
 
-namespace PiServerLite.Html.Blocks
+namespace PiServerLite.Html.Filters
 {
-    internal class ConditionalBlock
+    internal class HtmlConditionalFilter : IHtmlTagFilter
     {
         public HtmlEngine Engine {get;}
 
 
-        public ConditionalBlock(HtmlEngine engine)
+        public HtmlConditionalFilter(HtmlEngine engine)
         {
             this.Engine = engine;
+        }
+
+        public bool MatchesTag(string tag)
+        {
+            return tag.StartsWith("#if ", StringComparison.OrdinalIgnoreCase);
         }
 
         public void Process(string text, string tag, VariableCollection valueCollection, BlockResult result, ref int read_pos)

@@ -1,16 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace PiServerLite.Html.Blocks
+namespace PiServerLite.Html.Filters
 {
-    internal class EachBlock
+    internal class HtmlEachFilter : IHtmlTagFilter
     {
         public HtmlEngine Engine {get;}
 
 
-        public EachBlock(HtmlEngine engine)
+        public HtmlEachFilter(HtmlEngine engine)
         {
             this.Engine = engine;
+        }
+
+        public bool MatchesTag(string tag)
+        {
+            return tag.StartsWith("#each ", StringComparison.OrdinalIgnoreCase);
         }
 
         public void Process(string text, string tag, VariableCollection valueCollection, BlockResult result, ref int readPos)

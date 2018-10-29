@@ -1,22 +1,20 @@
-﻿using PiServerLite.Extensions;
-using PiServerLite.Html.Blocks;
+﻿using PiServerLite.Html.Filters;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace PiServerLite.Html
 {
-    internal class HtmlEngine
+    public class HtmlEngine
     {
-        public event EventHandler<TagNotFoundEventArgs> VariableNotFound;
+        public event EventHandler<HtmlTagNotFoundEventArgs> VariableNotFound;
 
-        private readonly ConditionalBlock conditionalBlock;
-        private readonly EachBlock eachBlock;
         private readonly ViewCollection views;
 
         public string UrlRoot {get; set;}
         public bool RemoveComments {get; set;}
         public VariableNotFoundBehavior VariableNotFoundBehavior {get; set;}
+        public List<IHtmlTagFilter> Filters {get;}
 
 
         public HtmlEngine(ViewCollection views)
@@ -26,16 +24,25 @@ namespace PiServerLite.Html
             RemoveComments = true;
             VariableNotFoundBehavior = VariableNotFoundBehavior.Source;
 
-            conditionalBlock = new ConditionalBlock(this);
-            eachBlock = new EachBlock(this);
+            Filters = new List<IHtmlTagFilter> {
+                new HtmlConditionalFilter(this),
+                new HtmlEachFilter(this),
+                new HtmlUrlFilter(this),
+                new HtmlScriptFilter(this),
+                new HtmlStyleFilter(this),
+                new HtmlMasterViewFilter(),
+            };
         }
 
-        public string Process(string text, object param)
+        public string Process(string viewKey, object param = null)
         {
+            if (!views.TryFind(viewKey, out var viewContent))
+                throw new ApplicationException($"View '{viewKey}' was not found!");
+
             var valueCollection = new VariableCollection(param);
 
             // Process root text block
-            var result = ProcessBlock(text, valueCollection);
+            var result = ProcessBlock(viewContent, valueCollection);
 
             var scriptList = new List<string>(result.Scripts);
             var styleList = new List<string>(result.Styles);
@@ -74,29 +81,16 @@ namespace PiServerLite.Html
                 result.Builder.Append(text, read_pos, tagStart - read_pos);
                 read_pos = tagEnd;
 
-                if (tag.StartsWith("#")) {
-                    if (tag.StartsWith("#if ", StringComparison.OrdinalIgnoreCase))
-                        conditionalBlock.Process(text, tag, valueCollection, result, ref read_pos);
-
-                    else if (tag.StartsWith("#master ", StringComparison.OrdinalIgnoreCase))
-                        ProcessMasterTag(tag, result);
-
-                    else if (tag.StartsWith("#url ", StringComparison.OrdinalIgnoreCase))
-                        ProcessUrlTag(tag, result);
-
-                    else if (string.Equals(tag, "#script", StringComparison.OrdinalIgnoreCase))
-                        ProcessScriptBlock(text, valueCollection, result, ref read_pos);
-
-                    else if (string.Equals(tag, "#style", StringComparison.OrdinalIgnoreCase))
-                        ProcessStyleBlock(text, valueCollection, result, ref read_pos);
-
-                    else if (tag.StartsWith("#each ", StringComparison.OrdinalIgnoreCase))
-                        eachBlock.Process(text, tag, valueCollection, result, ref read_pos);
-
-                    else
-                        result.Builder.Append(text.Substring(tagStart, tagEnd - tagStart));
+                var isProcessed = false;
+                foreach (var filter in Filters) {
+                    if (filter.MatchesTag(tag)) {
+                        filter.Process(text, tag, valueCollection, result, ref read_pos);
+                        isProcessed = true;
+                        break;
+                    }
                 }
-                else {
+
+                if (!isProcessed) {
                     // Process Variable Tag
                     if (valueCollection != null && valueCollection.TryGetFormattedValue(tag, out var item_value)) {
                         result.Builder.Append(item_value);
@@ -118,54 +112,9 @@ namespace PiServerLite.Html
             return result;
         }
 
-        private void ProcessMasterTag(string tag, BlockResult result)
-        {
-            var valueStart = tag.IndexOf(' ');
-            if (valueStart < 0) throw new RenderingException("Master view path is undefined!");
-
-            result.MasterView = tag.Substring(valueStart+1).Trim();
-        }
-
-        private void ProcessUrlTag(string tag, BlockResult result)
-        {
-            var valueStart = tag.IndexOf(' ');
-            if (valueStart < 0) throw new RenderingException("Url path is undefined!");
-
-            var url = tag.Substring(valueStart+1).Trim();
-            url = NetPath.Combine(UrlRoot, url);
-
-            result.Builder.Append(url);
-        }
-
-        private void ProcessScriptBlock(string text, VariableCollection valueCollection, BlockResult result, ref int readPos)
-        {
-            var endTag = "{{#endscript}}";
-            var blockEndStart = text.IndexOf(endTag, readPos, StringComparison.OrdinalIgnoreCase);
-            if (blockEndStart < 0) throw new RenderingException("No #EndScript tag was found!");
-
-            var blockText = text.Substring(readPos, blockEndStart - readPos);
-            readPos = blockEndStart + endTag.Length;
-
-            var blockResult = ProcessBlock(blockText, valueCollection);
-            result.Scripts.Add(blockResult.Text);
-        }
-
-        private void ProcessStyleBlock(string text, VariableCollection valueCollection, BlockResult result, ref int readPos)
-        {
-            var endTag = "{{#endstyle}}";
-            var blockEndStart = text.IndexOf(endTag, readPos, StringComparison.OrdinalIgnoreCase);
-            if (blockEndStart < 0) throw new RenderingException("No #EndStyle tag was found!");
-
-            var blockText = text.Substring(readPos, blockEndStart - readPos);
-            readPos = blockEndStart + endTag.Length;
-
-            var blockResult = ProcessBlock(blockText, valueCollection);
-            result.Styles.Add(blockResult.Text);
-        }
-
         protected virtual string OnVariableNotFound(string tag, string sourceText)
         {
-            var e = new TagNotFoundEventArgs(tag);
+            var e = new HtmlTagNotFoundEventArgs(tag);
 
             try {
                 VariableNotFound?.Invoke(this, e);

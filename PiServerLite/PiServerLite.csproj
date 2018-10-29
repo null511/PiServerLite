@@ -3,17 +3,18 @@
     <TargetFrameworks>net45;netstandard2.0</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyVersion>0.4.0</AssemblyVersion>
+    <AssemblyVersion>0.4.1</AssemblyVersion>
     <FileVersion>0.4.0</FileVersion>
-    <Version>0.4.0</Version>
+    <Version>0.4.1</Version>
     <Authors>null511</Authors>
     <Company>Joshua Miller</Company>
-    <Description>A very lightweight HTTP server for the Raspberry Pi using C#.</Description>
+    <Description>A very lightweight HTTP server implementation for .NET written using C#; designed to support low-energy devices, such as the Raspberry Pi.</Description>
     <Copyright>Copyright © Joshua Miller 2018</Copyright>
     <PackageTags>raspberry pi http server lite light</PackageTags>
     <RepositoryUrl>https://github.com/null511/PiServerLite</RepositoryUrl>
     <PackageProjectUrl>https://github.com/null511/PiServerLite</PackageProjectUrl>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <PackageLicenseUrl>https://github.com/null511/PiServerLite/blob/master/LICENSE</PackageLicenseUrl>
   </PropertyGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net45'">
     <Reference Include="System" />
