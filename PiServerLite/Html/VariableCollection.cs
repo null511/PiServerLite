@@ -5,7 +5,7 @@ using System.Web;
 
 namespace PiServerLite.Html
 {
-    internal class VariableCollection
+    public class VariableCollection
     {
         private readonly IDictionary<string, object> collection;
 
@@ -25,9 +25,12 @@ namespace PiServerLite.Html
             collection = new Dictionary<string, object>(sourceCollection.collection, StringComparer.OrdinalIgnoreCase);
         }
 
-        public VariableCollection(object parameters)
+        public VariableCollection(object parameters = null)
         {
-            collection = ObjectExtensions.ToDictionary(parameters);
+            collection = parameters == null
+                ? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+                : parameters as IDictionary<string, object>
+                ?? ObjectExtensions.ToDictionary(parameters);
         }
 
         public virtual bool TryGetFormattedValue(string key, out object value)

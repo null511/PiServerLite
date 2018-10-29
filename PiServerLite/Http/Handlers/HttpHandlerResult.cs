@@ -261,19 +261,16 @@ namespace PiServerLite.Http.Handlers
         /// <param name="param">Optional view-model object.</param>
         public static HttpHandlerResult View(HttpReceiverContext context, string name, object param = null)
         {
-            if (!context.Views.TryFind(name, out var content))
-                throw new ApplicationException($"View '{name}' was not found!");
-
             var engine = new HtmlEngine(context.Views) {
                 UrlRoot = context.ListenerPath,
             };
 
-            content = engine.Process(content, param);
+            var viewContent = engine.Process(name, param);
 
             return new HttpHandlerResult {
                 StatusCode = (int)HttpStatusCode.OK,
                 StatusDescription = "OK.",
-            }.SetText(content);
+            }.SetText(viewContent);
         }
     }
 }

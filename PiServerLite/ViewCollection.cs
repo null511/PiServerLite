@@ -10,6 +10,11 @@ namespace PiServerLite
         private readonly ViewCache viewCache;
         private readonly Dictionary<string, Func<string>> viewList;
 
+        public string this[string key] {
+            get => viewList[key]?.Invoke();
+            set => viewList[key] = () => value;
+        }
+
 
         public ViewCollection()
         {

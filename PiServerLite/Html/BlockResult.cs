@@ -3,7 +3,7 @@ using System.Text;
 
 namespace PiServerLite.Html
 {
-    internal class BlockResult
+    public class BlockResult
     {
         public StringBuilder Builder {get;}
         public string MasterView {get; set;}
