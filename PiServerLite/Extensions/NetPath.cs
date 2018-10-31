@@ -21,6 +21,8 @@ namespace PiServerLite.Extensions
                     if (lastChar == '/') {
                         if (path.StartsWith("/"))
                             result.Append(path.Substring(1));
+                        else
+                            result.Append(path);
                     }
                     else {
                         if (!path.StartsWith("/"))
