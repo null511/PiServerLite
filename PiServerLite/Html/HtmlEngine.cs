@@ -30,16 +30,24 @@ namespace PiServerLite.Html
                 new HtmlUrlFilter(this),
                 new HtmlScriptFilter(this),
                 new HtmlStyleFilter(this),
+                new HtmlViewFilter(this),
                 new HtmlMasterViewFilter(),
             };
         }
 
         public string Process(string viewKey, object param = null)
         {
+            var valueCollection = new VariableCollection(param);
+            return Process(viewKey, valueCollection);
+        }
+
+        public string Process(string viewKey, VariableCollection valueCollection)
+        {
+            if (viewKey == null) throw new ArgumentNullException(nameof(viewKey));
+            if (valueCollection == null) throw new ArgumentNullException(nameof(valueCollection));
+
             if (!views.TryFind(viewKey, out var viewContent))
                 throw new ApplicationException($"View '{viewKey}' was not found!");
-
-            var valueCollection = new VariableCollection(param);
 
             // Process root text block
             var result = ProcessBlock(viewContent, valueCollection);

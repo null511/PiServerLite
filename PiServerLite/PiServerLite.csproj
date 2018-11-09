@@ -3,9 +3,9 @@
     <TargetFrameworks>net45;netstandard2.0</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyVersion>0.4.2</AssemblyVersion>
-    <FileVersion>0.4.2</FileVersion>
-    <Version>0.4.2</Version>
+    <AssemblyVersion>0.4.3</AssemblyVersion>
+    <FileVersion>0.4.3</FileVersion>
+    <Version>0.4.3</Version>
     <Authors>null511</Authors>
     <Company>Joshua Miller</Company>
     <Description>A very lightweight HTTP server implementation for .NET written using C#; designed to support low-energy devices, such as the Raspberry Pi.</Description>
